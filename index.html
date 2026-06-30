@@ -1,1194 +1,509 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hada Labo — Bảng Phân Tích Social Listening</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-
-:root {
-  --blue-700:#1565C0; --blue-600:#1976D2; --blue-50:#E8F0FE; --blue-100:#C5D8F8;
-  --green-700:#2E7D32; --green-50:#E8F5E9;
-  --red-700:#C62828;   --red-50:#FFEBEE;
-  --grey-500:#757575;  --grey-100:#F5F5F5;
-  --bg:#F3F5F9; --surface:#FFFFFF;
-  --border:#DDE3EE; --border-lt:#EEF1F8;
-  --text-primary:#1C2033; --text-secondary:#5A6478;
-  --text-muted:#8E97AB; --text-disabled:#BCC4D4;
-  --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-xl:18px;
-  --shadow-sm:0 1px 4px rgba(21,101,192,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:0 4px 16px rgba(21,101,192,.09),0 1px 4px rgba(0,0,0,.04);
-  --shadow-lg:0 8px 28px rgba(21,101,192,.13),0 2px 8px rgba(0,0,0,.06);
-  --tr:180ms ease;
-  /* legacy aliases so JS still works */
-  --hl-blue:#1565C0; --hl-blue2:#1976D2; --hl-pale:#E8F0FE;
-  --pos:#2E7D32; --pos-l:#E8F5E9; --neu:#757575; --neu-l:#F5F5F5; --neg:#C62828; --neg-l:#FFEBEE;
-  --bg:#F3F5F9; --card:#FFFFFF; --bdr:#DDE3EE;
-  --t1:#1C2033; --t2:#5A6478; --tm:#8E97AB;
-  --sh:var(--shadow-sm); --sh2:var(--shadow-md);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text-primary);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
-
-/* NAV */
-.topnav{background:var(--blue-700);display:flex;align-items:center;padding:0 28px;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(255,255,255,.08),0 2px 8px rgba(21,101,192,.3)}
-.nav-brand{display:flex;align-items:center;gap:12px}
-.nav-logo-box{background:#F5F3E8;border-radius:var(--radius-sm);padding:4px 8px;display:flex;align-items:center;gap:6px}
-.nav-logo-kanji{background:var(--blue-700);color:white;font-weight:700;font-size:11px;padding:2px 6px;border-radius:3px;letter-spacing:1px}
-.nav-logo-text{color:var(--blue-700);font-weight:700;font-size:11px;line-height:1.3}
-.nav-title{color:rgba(255,255,255,.92);font-size:13.5px;font-weight:500;letter-spacing:.1px}
-
-/* TABS */
-.tabs-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 28px;position:sticky;top:54px;z-index:99;gap:2px}
-.tab-btn{padding:13px 18px;font-size:12.5px;font-weight:500;color:var(--text-secondary);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--tr),border-color var(--tr);white-space:nowrap;letter-spacing:.1px}
-.tab-btn:hover{color:var(--blue-700)}
-.tab-btn:focus-visible{outline:2px solid var(--blue-100);outline-offset:-2px;border-radius:4px}
-.tab-btn.active{color:var(--blue-700);border-bottom-color:var(--blue-700);font-weight:600}
-
-/* FILTER */
-.filter-bar{background:var(--surface);padding:9px 28px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border-lt);min-height:42px}
-.filter-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
-.filter-select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 28px 5px 10px;font-size:12.5px;font-family:inherit;color:var(--text-primary);background:white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%235A6478' d='M5 7L1 3h8z'/%3E%3C/svg%3E") no-repeat right 8px center;-webkit-appearance:none;cursor:pointer;outline:none;transition:border-color var(--tr),box-shadow var(--tr)}
-.filter-select:hover{border-color:var(--blue-100)}
-.filter-select:focus{border-color:var(--blue-700);box-shadow:0 0 0 3px var(--blue-50)}
-
-/* MAIN */
-.main{padding:20px 28px 40px;max-width:1600px;margin:0 auto}
-.tab-panel{display:none}.tab-panel.active{display:block}
-
-/* GRID */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
-.g31{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch}
-.mb16{margin-bottom:16px}
-
-/* CARDS */
-.card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);padding:18px 20px;box-shadow:var(--shadow-sm);transition:box-shadow var(--tr)}
-.card:hover{box-shadow:var(--shadow-md)}
-.card-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:6px}
-
-/* METRICS */
-.metrics-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
-.metric-tile{background:var(--surface);border-radius:var(--radius-md);border:1px solid var(--border);padding:14px 16px 13px;cursor:default;transition:box-shadow var(--tr),transform var(--tr);position:relative}
-.metric-tile:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
-.metric-tile.hl{border-left:3px solid var(--blue-700)}
-.metric-tile .m-label,.metric-tile .label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:4px}
-.metric-tile .m-value,.metric-tile .value{font-size:25px;font-weight:700;color:var(--text-primary);margin:5px 0 3px;line-height:1;letter-spacing:-.5px}
-.metric-tile .m-delta,.metric-tile .delta{font-size:11px;font-weight:600}
-.delta.up,.m-delta.up{color:var(--green-700)}
-.delta.down,.m-delta.down{color:var(--red-700)}
-.delta.flat,.m-delta.flat{color:var(--grey-500)}
-
-/* TOOLTIP */
-.tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--border);color:var(--text-muted);font-size:9px;font-weight:700;cursor:help;position:relative;flex-shrink:0}
-.tip:hover .tip-txt{display:block}
-.tip-txt{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1C2033;color:rgba(255,255,255,.92);font-size:11px;font-weight:400;padding:8px 12px;border-radius:var(--radius-sm);width:230px;z-index:500;line-height:1.55;box-shadow:0 4px 16px rgba(0,0,0,.22);white-space:normal;text-transform:none;letter-spacing:0;pointer-events:none}
-.tip-txt::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1C2033}
-
-/* BADGE */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.1px}
-.badge.pos{background:var(--green-50);color:var(--green-700)}
-.badge.neg{background:var(--red-50);color:var(--red-700)}
-.badge.neu{background:var(--grey-100);color:var(--grey-500)}
-.bdot{width:5px;height:5px;border-radius:50%;background:currentColor}
-
-/* INSIGHT BOXES — clean, no coloured backgrounds */
-.ins-box{background:var(--surface);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:16px;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.ins-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.ins-title::before{content:'';display:inline-block;width:3px;height:14px;border-radius:2px;flex-shrink:0}
-.ins-title.good{color:var(--green-700)}.ins-title.good::before{background:var(--green-700)}
-.ins-title.warn{color:var(--red-700)}.ins-title.warn::before{background:var(--red-700)}
-/* legacy aliases */
-.ins-title-green{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;color:var(--green-700);display:flex;align-items:center;gap:8px}
-.ins-title-green::before{content:'';display:inline-block;width:3px;height:14px;border-radius:2px;background:var(--green-700);flex-shrink:0}
-.ins-title-red{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;color:var(--red-700);display:flex;align-items:center;gap:8px}
-.ins-title-red::before{content:'';display:inline-block;width:3px;height:14px;border-radius:2px;background:var(--red-700);flex-shrink:0}
-.ins-item{font-size:12px;line-height:1.65;display:flex;gap:10px;margin-bottom:7px;color:var(--text-primary);align-items:flex-start}
-.ins-item:last-child{margin-bottom:0}
-/* consistent bullet — replaces all emoji bullets */
-.ins-bullet{flex-shrink:0;width:5px;height:5px;border-radius:50%;margin-top:7px;background:var(--text-muted);display:inline-block}
-.ins-bullet.good{background:var(--green-700)}
-.ins-bullet.warn{background:var(--red-700)}
-
-/* TRENDLINE */
-.trend-wrap{height:350px}
-
-/* KEY EVENTS */
-.ke-list{display:flex;flex-direction:column;gap:6px}
-.ke-item{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;border-left:2px solid var(--blue-700);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background var(--tr);text-decoration:none}
-.ke-item:hover{background:var(--blue-50)}
-.ke-item.neg-ev{border-left-color:var(--red-700)}
-.ke-meta{min-width:68px;flex-shrink:0}
-.ke-date{font-size:10px;font-weight:600;color:var(--text-muted)}
-.ke-ch{font-size:10px;color:var(--blue-700);font-weight:600;margin-top:2px}
-.ke-txt{font-size:11.5px;color:var(--text-primary);line-height:1.45;flex:1}
-.ke-stats{display:flex;gap:8px;margin-top:5px;flex-wrap:wrap}
-.ke-stat{font-size:10px;color:var(--text-muted)}
-
-/* BARS */
-.bar-item{margin-bottom:9px}.bar-item:last-child{margin-bottom:0}
-.bar-hdr{display:flex;justify-content:space-between;margin-bottom:4px;font-size:11.5px;align-items:baseline}
-.bar-name{color:var(--text-primary);font-weight:500;flex:1;margin-right:8px}
-.bar-cnt{color:var(--text-secondary);font-weight:600;font-size:11px;flex-shrink:0}
-.bar-track{height:6px;background:var(--border-lt);border-radius:3px;overflow:hidden}
-.bar-fill{height:100%;border-radius:3px;transition:width .9s cubic-bezier(.4,0,.2,1)}
-.bar-item:hover .bar-name{color:var(--blue-700)}
-
-/* SOURCE TABLE */
-.src-tbl{width:100%;border-collapse:collapse}
-.src-tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);padding:5px 10px 7px;border-bottom:1px solid var(--border);text-align:left}
-.src-tbl td{padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border-lt);vertical-align:middle;color:var(--text-primary)}
-.src-tbl tr:last-child td{border-bottom:none}
-.src-tbl tbody tr{transition:background var(--tr)}
-.src-tbl tbody tr:hover td{background:var(--bg)}
-.rnk{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--blue-50);color:var(--blue-700);font-size:10px;font-weight:700;align-items:center;justify-content:center}
-.rnk.t3{background:var(--blue-700);color:white}
-.bar-inline{display:inline-block;height:5px;border-radius:3px;background:var(--blue-700);vertical-align:middle;opacity:.7}
-
-/* DONUT */
-.donut-wrap{position:relative}
-.donut-ctr{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.donut-big{font-size:19px;font-weight:700;color:var(--text-primary);letter-spacing:-.5px}
-.donut-sm{font-size:10px;color:var(--text-muted);font-weight:500;margin-top:1px}
-
-/* LEGEND */
-.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)}
-.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-/* NSR */
-.nsr-num{font-size:34px;font-weight:700;color:var(--green-700);letter-spacing:-1px}
-.nsr-lbl{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-
-/* MOM */
-.mom-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow-sm)}
-.mom-hdr{background:var(--blue-700);color:white;padding:10px 16px;font-size:11.5px;font-weight:600}
-.mom-hdr2{background:var(--blue-600);color:white;padding:10px 16px;font-size:11.5px;font-weight:600}
-.mom-body{padding:0 16px}
-.mom-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-lt)}
-.mom-row:last-child{border-bottom:none}
-.mom-row-lbl{font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:5px}
-.mom-v{font-size:13px;font-weight:700;color:var(--text-primary)}
-
-/* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(28,32,51,.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
-.modal-overlay.open{display:flex}
-.modal-box{background:white;border-radius:var(--radius-xl);padding:24px;max-width:620px;width:90%;max-height:80vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.22);animation:modalIn .18s ease}
-@keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
-.modal-close{position:absolute;top:14px;right:16px;width:28px;height:28px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:background var(--tr)}
-.modal-close:hover{background:var(--border)}
-.modal-title{font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:2px;padding-right:32px}
-.modal-sub{font-size:11px;color:var(--text-muted);margin-bottom:14px}
-.modal-sent-tabs{display:flex;gap:6px;margin-bottom:14px}
-.ms-tab{padding:5px 14px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:white;color:var(--text-secondary);transition:all var(--tr);font-family:inherit}
-.ms-tab:hover{border-color:var(--blue-100)}
-.ms-tab.pos-active{background:var(--green-50);color:var(--green-700);border-color:var(--green-700)}
-.ms-tab.neg-active{background:var(--red-50);color:var(--red-700);border-color:var(--red-700)}
-.ms-tab.neu-active{background:var(--grey-100);color:var(--grey-500);border-color:var(--grey-500)}
-.post-card{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--border);transition:border-color var(--tr)}
-.post-card.pos{border-left-color:var(--green-700)}
-.post-card.neg{border-left-color:var(--red-700)}
-.post-card.neu{border-left-color:var(--grey-500)}
-.post-meta{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
-.post-txt{font-size:12px;color:var(--text-primary);line-height:1.55}
-.post-stats{display:flex;gap:10px;margin-top:6px}
-.post-stat{font-size:10px;color:var(--text-muted)}
-.post-link{font-size:10.5px;color:var(--blue-700);text-decoration:none;margin-top:5px;display:inline-block;border-bottom:1px solid transparent;transition:border-color var(--tr)}
-.post-link:hover{border-bottom-color:var(--blue-700)}
-
-/* STATES */
-.state-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:8px;color:var(--text-muted);min-height:120px}
-.state-icon{font-size:26px;opacity:.45}
-.state-title{font-size:12.5px;font-weight:600;color:var(--text-secondary)}
-.state-sub{font-size:11px;text-align:center;max-width:220px;line-height:1.5}
-.loading-bar{display:flex;gap:5px;align-items:center;justify-content:center;padding:24px}
-.loading-bar span{width:6px;height:6px;border-radius:50%;background:var(--blue-100);animation:loadPulse 1.2s ease-in-out infinite}
-.loading-bar span:nth-child(2){animation-delay:.2s}
-.loading-bar span:nth-child(3){animation-delay:.4s}
-@keyframes loadPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
-.error-msg{background:var(--red-50);border:1px solid #FFCDD2;border-radius:var(--radius-sm);padding:10px 14px;font-size:11.5px;color:var(--red-700);display:flex;align-items:center;gap:8px}
-.btn-disabled{opacity:.4;pointer-events:none;cursor:not-allowed}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.fu{animation:fadeUp .35s ease forwards}
-.fu2{animation:fadeUp .35s .08s ease forwards;opacity:0}
-.fu3{animation:fadeUp .35s .16s ease forwards;opacity:0}
-
-@media(max-width:1200px){.metrics-row{grid-template-columns:repeat(3,1fr)}.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:900px){.main{padding:14px 16px 32px}.metrics-row{grid-template-columns:repeat(2,1fr)}.g2,.g3,.g31{grid-template-columns:1fr}.tabs-bar{overflow-x:auto}.tab-btn{padding:12px 14px;font-size:12px}}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#F0F5FA;}
+.db{max-width:900px;margin:0 auto;padding:1rem 1rem 2rem;font-family:'Noto Sans',sans-serif;font-size:13px;}
+.db-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;padding-bottom:10px;border-bottom:2px solid #1E6BB8;flex-wrap:wrap;gap:8px;}
+.brand-row{display:flex;align-items:center;gap:10px;}
+.brand-logo{width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;box-shadow:0 2px 8px rgba(30,107,184,.2);}
+.brand-logo img{width:100%;height:100%;object-fit:cover;}
+.db-title{font-size:15px;font-weight:700;color:#1E6BB8;}
+.db-sub{font-size:11px;color:#5a7a99;margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:8px;}
+.db-period{font-size:11px;color:#fff;background:#1E6BB8;padding:3px 10px;border-radius:10px;white-space:nowrap;}
+.lang-toggle{display:flex;border:1px solid #1E6BB8;border-radius:8px;overflow:hidden;}
+.lang-btn{padding:4px 10px;font-size:11px;font-weight:600;background:#fff;color:#1E6BB8;border:none;cursor:pointer;transition:all .15s;}
+.lang-btn.active{background:#1E6BB8;color:#fff;}
+.dim-nav{display:flex;gap:0;margin-bottom:1.25rem;border:1px solid rgba(30,107,184,.2);border-radius:10px;overflow:hidden;background:rgba(240,247,253,.9);}
+.dim-btn{flex:1;padding:9px 10px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:#3A6A9A;transition:all .15s;}
+.dim-btn.active{background:linear-gradient(135deg,#1E6BB8,#2E86D4);color:#fff;}
+.dim-btn:not(:last-child){border-right:1px solid rgba(30,107,184,.15);}
+.dim-btn:not(.active):hover{background:rgba(30,107,184,.08);}
+.dim-sec{display:none;}.dim-sec.active{display:block;}
+.sec-title{font-size:10px;font-weight:500;color:#1E6BB8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.65rem;display:flex;align-items:center;gap:6px;}
+.sec-title::after{content:'';flex:1;height:1px;background:#D0E4F5;}
+.kpi4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:.9rem;}
+.kpi3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:.9rem;}
+.kpi{background:#F0F7FD;border-radius:8px;padding:10px 12px;border-left:3px solid #1E6BB8;position:relative;}
+.kpi-lbl{font-size:10px;color:#5a7a99;margin-bottom:2px;display:flex;align-items:center;gap:3px;text-transform:uppercase;letter-spacing:.04em;}
+.kpi-val{font-size:18px;font-weight:500;color:#1E3A5F;}
+.kpi-ch{font-size:10px;margin-top:2px;}
+.up{color:#2E7D32;}.dn{color:#C0392B;}.neu{color:#8B6914;}
+.hint{width:13px;height:13px;border-radius:50%;background:#D0E4F5;color:#1E6BB8;font-size:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;font-style:normal;}
+.hint .tt{display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1E3A5F;color:#fff;border-radius:6px;padding:7px 9px;font-size:10px;width:210px;line-height:1.5;z-index:99;white-space:normal;text-align:left;}
+.hint:hover .tt{display:block;}
+.card{background:#fff;border:1px solid #D0E4F5;border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.card-hd{font-size:12px;font-weight:500;color:#1E3A5F;margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.g2-6{display:grid;grid-template-columns:3fr 2fr;gap:10px;margin-bottom:10px;}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px;}
+.bp{background:rgba(200,240,210,.55);border:1px solid rgba(76,175,80,.35);color:#1B5E20;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:500;}
+.bn{background:rgba(255,205,205,.55);border:1px solid rgba(244,67,54,.35);color:#7f0000;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:500;}
+.bne{background:rgba(255,243,195,.55);border:1px solid rgba(255,193,7,.45);color:#4a3800;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:500;}
+.ibox{border-left:3px solid #1E6BB8;border-radius:0 5px 5px 0;padding:8px 10px;margin-top:8px;background:rgba(232,244,253,.6);}
+.ibox-w{background:rgba(255,245,224,.6);border-left:3px solid #D4880A;border-radius:0 5px 5px 0;padding:8px 10px;}
+.ibox-p{background:rgba(232,246,236,.6);border-left:3px solid #2E7D32;border-radius:0 5px 5px 0;padding:8px 10px;}
+.ititle{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;color:#0D47A1;}
+.ititle-w{color:#8B4513;}.ititle-p{color:#1B5E20;}
+.itext{font-size:11px;color:#1A3A5C;line-height:1.45;}
+.itext-w{color:#5C3D06;}.itext-p{color:#1A3A22;}
+.alist{margin-top:4px;padding-left:11px;}
+.alist li{font-size:10px;margin-bottom:2px;line-height:1.4;color:#1A3A5C;}
+.alist-w li{color:#5C3D06;}.alist-p li{color:#1A3A22;}
+.ilegend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding:6px 10px;background:#F8FBFF;border-radius:6px;border:1px solid #D0E4F5;}
+.il-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#3A5A7A;}
+.ch-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #EBF4FB;font-size:11px;}
+.ch-row:last-child{border-bottom:none;}
+.ch-ic{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:#f4f4f4;flex-shrink:0;}
+.ch-bw{flex:1;height:6px;background:#EBF4FB;border-radius:3px;overflow:hidden;}
+.ch-bf{height:100%;border-radius:3px;}
+.peak-event{border:1px solid #D0E4F5;border-radius:7px;padding:8px 10px;margin-bottom:6px;background:#FAFCFF;}
+.peak-hd{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.peak-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.peak-date{font-size:10px;font-weight:500;color:#1E3A5F;}
+.peak-val{font-size:10px;color:#1E6BB8;font-weight:500;}
+.peak-post{font-size:10px;color:#3A5A7A;line-height:1.4;padding-left:16px;border-left:2px solid #D0E4F5;margin-left:5px;}
+.src-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #EBF4FB;font-size:11px;}
+.src-row:last-child{border-bottom:none;}
+.topic-clickable{cursor:pointer;border-radius:8px;padding:7px 9px;transition:background .12s;margin-bottom:4px;}
+.topic-clickable:hover{background:#EBF4FB;}
+.topic-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.topic-nm{font-size:11px;color:#1E3A5F;font-weight:500;}
+.topic-tot{font-size:10px;color:#5a7a99;}
+.topic-stack{height:9px;border-radius:4px;overflow:hidden;display:flex;}
+.topic-ft{display:flex;gap:8px;margin-top:2px;}
+.tmini{font-size:10px;}
+.topic-detail{display:none;background:#F8FCFF;border:1px solid #D0E4F5;border-radius:8px;padding:10px 12px;margin:4px 0 8px 8px;}
+.topic-detail.open{display:block;}
+.sent-tabs{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+.stab{padding:4px 10px;border-radius:5px;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .12s;}
+.stab.pos{background:rgba(200,240,210,.4);color:#1B5E20;border-color:rgba(76,175,80,.3);}
+.stab.pos.active{background:rgba(200,240,210,.85);border-color:rgba(76,175,80,.6);}
+.stab.neu{background:rgba(255,243,195,.4);color:#4a3800;border-color:rgba(255,193,7,.3);}
+.stab.neu.active{background:rgba(255,243,195,.85);border-color:rgba(255,193,7,.6);}
+.stab.neg{background:rgba(255,205,205,.4);color:#7f0000;border-color:rgba(244,67,54,.3);}
+.stab.neg.active{background:rgba(255,205,205,.85);border-color:rgba(244,67,54,.6);}
+.sent-panel{display:none;}.sent-panel.active{display:block;}
+.post-item{font-size:10px;color:#2C4A6A;padding:4px 0;border-bottom:1px solid #EBF4FB;line-height:1.45;}
+.post-item:last-child{border-bottom:none;}
+.neg-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px;}
+.lrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.li{display:flex;align-items:center;gap:3px;font-size:10px;color:#5a7a99;}
+.ls{width:8px;height:8px;border-radius:1px;flex-shrink:0;}
+.divider{height:1px;background:#D0E4F5;margin:1.2rem 0;}
+.mom-table{width:100%;font-size:11px;border-collapse:collapse;}
+.mom-table th{font-size:10px;font-weight:500;color:#5a7a99;text-align:left;padding:5px 8px;border-bottom:1px solid #D0E4F5;text-transform:uppercase;letter-spacing:.04em;}
+.mom-table th:not(:first-child){text-align:center;}
+.mom-table td{padding:7px 8px;border-bottom:1px solid #EBF4FB;color:#1E3A5F;vertical-align:middle;}
+.mom-table td:not(:first-child){text-align:center;}
+.mom-table tr:last-child td{border-bottom:none;}
+.delta-up{color:#2E7D32;font-size:10px;}.delta-dn{color:#C0392B;font-size:10px;}
 </style>
-</head>
-<body>
 
-<nav class="topnav">
-  <div class="nav-brand">
-    <div class="nav-logo-box">
-      <div class="nav-logo-kanji">肌 研</div>
-      <div class="nav-logo-text">Hada<br>Labo</div>
+<div class="db">
+<div class="db-header">
+  <div class="brand-row">
+    <div class="brand-logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAIAAAABc2X6AAAIRElEQVR4nO2aW4xdZRXH/2t9+3Kuc59OZwbaaemVDhWKSSkFCygqPGCimIiJROWiDyYSH8QXozHGGB9M1EQSQWITipBAaiCiGCPXhNIIhWJtYWhpp0Npp9OZ4czMuez9fWv5cKYXOpdzDhhNN+f/dHLm299Zv29d9lp7D6kqPk7i/7cB/2s1gZOuJnDS1QROuprASVcTOOlqAiddTeCkqwmcdDWBk64mcNLVBE66vJorLqzH1lRrQW3gmltcWKoB7MSJOCb6MH7WD3NaBFinxVgI1Eh4kSrSIaX8QMQxm4XWLQjsRA3Tzt1v/eCRPalcxok0ajcIqlXieu0mInXoyHkb+0JLQlpviSFC7Ox0xfzolst2Hzp6/aWrBro7VZXo/CNfELhq42RRDx5zaLEQO/sHptOOU4iCCGc2FYUqmFCKN13ac+Wy7P1PHUQ2DbEgAp/z29UXWmetUYjObj5tb9zSft83u+I48rjeCFGAjd79h/HRGWuYy7FdaGWNkPaYOCTjkxOu2qnFaNY4z5iM7yoWldO7ZwL2DAMSU08+WN2RZgMvIKtGrKAUnUUNPYjCydkjy/hMMEwu4NAQ4EgdtP6UIEAIsqa3Z/OKpYHvA5jr3trACogqqYoCisDgts+u7W8NAdp/bHznrpFPrOq+abBHCNbKYy8PD4+XyWdRWNGKVVEoVGLX25W5ddMqUaQDLyB69sDxfC5Y1ZUPA2OtK0aVh3eNFCMwzUbJaYbGakA1hjNhsMiaepPEY8JMdMe2ge9d199ubGegP//ius9v7PzVVwbXd/rtnl6zsvU3X70MUVw9V8LZEGaQH0V3br3421t7l/p2oI1zvvblzS+/PLgs476+pf/Ozf1ciZhoLqBWw0rPLwOLvOTVRWtG7dvSrAgQHejK73jp8C8e2gfm1u9fu76vbaYc37X9lWgsvmRwyQO3XwGPzjNFFRzw8MjM9pdHchz95P69aM+AycsEd31q4p4HX/3urS5jMF0Qr4PmvqxmJkChAJE4Pf0lyJA6VcXcsF28uNcNDACIrc1nUmFnDkyZwCvHjoiWtqaPOb87n3ILHbuCfG5NhTnDYWfWb8+USnFbNkgHXqo915YN0wAZBp3vR2I6NWWhhliimJZ2GEBBNDNtD465y5YFzAq3mLc/KjAxT1cqlfdLMFSKI2YAsKLWiZPFKowqFFosx5XJUoUIxsyUosjZ8mSpUI6FoO58q1UBppOF+Jk3y0bjq9a2jIxPv1/idf3msV3TSzqzS1vt316f+dJVrSlfUfdNsxFgpqlSdMc16zYN9JGhqwbantt3wtRz5yAQ01Q5/tbWVav7OytW7n301W9sW7VmSduj914/2NdeLJd+/fehgoWZY44q+R75nl8o2f3DlZMlHp02HW1h6Mn+Y/b5oWjrBl3Rjfq7hEaGB9XA8147PPrQM2/t+Mebh04WQs/UF06kscv5fGJyasdT/2oLzT2fWf2X10YKxcojz731xtGxt48XyiVH/IHkIwJEulu9Wy7P3TyYvajD7+tM37A+/+kNOYhu6A+zqeBzl7d051hdA9W8EQ8rUj7tGZl44qV3wfjC1QOhz1KLmAjWSkt75vYtK3f+89CTzx5dsab/olZ/RW/HodGJnU8dWrey2xNbKYqXmpPESpmQypW4I+91Ew105yAyPFb52rVtgAW8T15CcFYb6WEbHg+JGUxgIqq7Wjhpa/FPFaYMkWlJ5ULPN9wdxD98fK9pz2QDTvke5qSGKmBo+GT0wlAFzCcmoz+/Mn5qRna8VHhyz+R00bywb+rpvYVIWNFA0123hxUgxNat7m7ZPLiUDfW2pmLnmKCLHq8qTGiGj7z/2xePXL28zTlxgkxAv3viIPW0qM9W1FvYXAGVHKni0Gj85J6oI++Wd6WmivTXNwoQTJTk8Fi8ptdzcb3EjdyHiYqRXLd2SVfeJ8bGvtaHYznjmOoPztfMAQryOJsKAXjMTOREORumfC4uYicBoj0tXmGoOPSeZXhXrMws6wpOTVUqjrety+5+ezr0g4vbA7V2npblowIDEM2lgweef/Onf9wPpgfv2ZJN+ZEDQQF4TApVqwjnQ1Z4hiqxs5PF6Uqc8jPipNqSq86fGgSoaGfev/uGDnGW+9Kb1wKi/VfmAYLamzflAMA51fp5G6vSSBnKZAJOB5wO85nAN8gEDDAMvzs+syTnDfSkJJbzHK0AfHPg3fGbNvZu//GNd29b9vqRU/BMNfcCnwOfF0pCEZE4IlWJrcROnEjsJI7FQmInsW30Hwnr9bATRTb4/TNDqiKhD8LP/rR3suh2vX1youwQmKNjpdvu212MHYirLtNzr035T+8dvbO0e3lH+tE97zx9YAKZILIOmWDHi4cBIBs4FZ6TEoTZPPng6ENzPvz3gGcHXgX5fOB4GQD5DGDPcBlM74zF8JlIyTf73ivBsDEkgGHymenM5VDyzLP7J+EmwERpr5oI5PO/j5VBQr4H6JnhWqqzdt3eUwBSF38NYFFVK9ZWB3StZoBaAYCqzR7BqVYbfCaoOisQFErRyemSisaz10IBBNUMIrVnUKp7cnVPy4BVQJkoCGiBGriQDKFmW1ALOOV7rS2pIBc4aSRX8sHQ6Mw7Y4WO3nxDUUcETfuHx+x3th+PVevnJZA4OTzO2bDGNfNMZOeqGMdTkZubWouo2vaoqoKYMO8Et+C1Wn06pTMV+RDTf0va68l5tGglrgF8AapGn1nHg/gL6kDmfY51ruqq0knSx+7dUhM46WoCJ11N4KSrCZx0NYGTriZw0tUETrqawElXEzjpagInXU3gpKsJnHQ1gZOuJnDS9R/Kf8UvCqSBMgAAAABJRU5ErkJggg==" alt="Hada Labo Logo"/></div>
+    <div>
+      <div class="db-title"><span data-vi="Hada Labo — Dashboard Social Listening" data-en="Hada Labo — Social Listening Dashboard">Hada Labo — Dashboard Social Listening</span></div>
+      <div class="db-sub"><span data-vi="Báo cáo thương hiệu · Tháng 5/2026" data-en="Brand Report · May 2026">Báo cáo thương hiệu · Tháng 5/2026</span></div>
     </div>
-    <span class="nav-title">Social Listening Dashboard</span>
   </div>
-</nav>
-
-<div class="tabs-bar">
-  <button class="tab-btn active" onclick="switchTab('sov')">Brand's Share of Voice</button>
-  <button class="tab-btn" onclick="switchTab('topics')">Topics of Discussion</button>
-  <button class="tab-btn" onclick="switchTab('perception')">Audience Perception</button>
-  <button class="tab-btn" onclick="switchTab('mom')">Month over Month</button>
+  <div class="header-right">
+    <div class="db-period"><span data-vi="Kỳ báo cáo: Tháng 5/2026" data-en="Report Month: May 2026">Kỳ báo cáo: Tháng 5/2026</span></div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-vi" onclick="setLang('vi')">VI</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
 </div>
 
-<div class="filter-bar" id="filter-bar-sov" style="display:flex">
-  <span class="filter-label">Xem theo:</span>
-  <select class="filter-select" onchange="setGlobalMonth(this.value)">
-    <option value="overall">Tổng quan</option>
-    <option value="2026-04">Tháng 4 / 2026</option>
-    <option value="2026-05">Tháng 5 / 2026</option>
-  </select>
-</div>
-<div class="filter-bar" id="filter-bar-mom" style="display:none">
-  <span class="filter-label">So sánh:</span>
-  <div style="display:flex;align-items:center;gap:8px">
-    <div style="width:11px;height:11px;border-radius:50%;background:#1565C0;flex-shrink:0"></div>
-    <select class="filter-select" id="mom-sel-a" onchange="renderMoM()" style="min-width:150px">
-      <option value="2026-04" selected>April 2026</option>
-      <option value="2026-05">May 2026</option>
-    </select>
-  </div>
-  <span style="font-size:13px;color:var(--tm);font-weight:500">vs</span>
-  <div style="display:flex;align-items:center;gap:8px">
-    <div style="width:11px;height:11px;border-radius:50%;background:rgba(21,101,192,0.45);flex-shrink:0"></div>
-    <select class="filter-select" id="mom-sel-b" onchange="renderMoM()" style="min-width:150px">
-      <option value="2026-04">April 2026</option>
-      <option value="2026-05" selected>May 2026</option>
-    </select>
-  </div>
-  <span id="mom-delta-badge" style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:12px;background:var(--hl-pale);color:var(--hl-blue)">— vs —</span>
+<div class="dim-nav">
+  <button class="dim-btn active" onclick="sw('main',this)"><span data-vi="Tỷ trọng thảo luận thương hiệu" data-en="Brand's Shared of Voice">Tỷ trọng thảo luận thương hiệu</span></button>
+  <button class="dim-btn" onclick="sw('topic',this)"><span data-vi="Chủ đề thảo luận" data-en="Topics of Discussion">Chủ đề thảo luận</span></button>
+  <button class="dim-btn" onclick="sw('perc',this)"><span data-vi="Cảm nhận khách hàng" data-en="Audience Perception">Cảm nhận khách hàng</span></button>
+  <button class="dim-btn" onclick="sw('mom',this)"><span data-vi="So sánh theo tháng" data-en="Month-over-Month">So sánh theo tháng</span></button>
 </div>
 
-<div class="main">
-
-<!-- TAB 1 -->
-<div id="tab-sov" class="tab-panel active">
-  <div class="ins-box fu">
-    <div class="ins-title-green">Tín hiệu tích cực</div>
-    <div class="ins-item"><span class="ins-bullet good"></span><span>TikTok và Facebook chiếm gần như toàn bộ lượng đề cập — phân bổ ngân sách nội dung và paid đồng đều cho cả hai, không nên ưu tiên hẳn một kênh.</span></div>
-    <div class="ins-item"><span class="ins-bullet good"></span><span>Cộng đồng bán lẻ (Hasaki, các trang shop) đang là nguồn thảo luận lớn nhất — đây là nơi phù hợp để chạy seeding và ưu đãi theo đợt.</span></div>
-    <div class="ins-item"><span class="ins-bullet good"></span><span>Tổng tương tác tăng <b>+2.9%</b> so với tháng trước — đà tăng ổn định, nên duy trì lịch đăng bài hiện tại và tiếp tục boost các nội dung có tương tác cao.</span></div>
+<!-- TAB 1: SOV -->
+<div id="d-main" class="dim-sec active">
+  <div class="sec-title"><span data-vi="Tổng quan về lượt đề cập Hada Labo" data-en="Overview of Hada Labo mentions">Tổng quan về lượt đề cập Hada Labo</span></div>
+  <div class="kpi4">
+    <div class="kpi"><div class="kpi-lbl"><span data-vi="Tổng thảo luận" data-en="Total Discussions">Tổng thảo luận</span> <span class="hint">i<span class="tt" data-vi="tổng số discussions đề cập thương hiệu (posts + comments) trên tất cả kênh trong kỳ báo cáo" data-en="total discussions mentioning the brand (posts + comments) across all channels during the report period">tổng số discussions đề cập thương hiệu (posts + comments) trên tất cả kênh trong kỳ báo cáo</span></span></div><div class="kpi-val">75,586</div><div class="kpi-ch dn">▼ 8.8% <span data-vi="vs tháng trước" data-en="vs previous month">vs tháng trước</span></div></div>
+    <div class="kpi"><div class="kpi-lbl"><span data-vi="Tổng bài đăng" data-en="Total Posts">Tổng bài đăng</span> <span class="hint">i<span class="tt" data-vi="bài đăng gốc — COUNT WHERE Type LIKE &quot;%Topic%&quot;" data-en="original posts — COUNT WHERE Type LIKE &quot;%Topic%&quot;">bài đăng gốc — COUNT WHERE Type LIKE "%Topic%"</span></span></div><div class="kpi-val">28,642</div><div class="kpi-ch up">▲ 9.5% <span data-vi="vs tháng trước" data-en="vs previous month">vs tháng trước</span></div></div>
+    <div class="kpi"><div class="kpi-lbl"><span data-vi="Tổng bình luận" data-en="Total Comments">Tổng bình luận</span> <span class="hint">i<span class="tt" data-vi="bình luận phản hồi — COUNT WHERE Type LIKE &quot;%Comment%&quot;" data-en="reply comments — COUNT WHERE Type LIKE &quot;%Comment%&quot;">bình luận phản hồi — COUNT WHERE Type LIKE "%Comment%"</span></span></div><div class="kpi-val">46,944</div><div class="kpi-ch dn">▼ 18.5% <span data-vi="vs tháng trước" data-en="vs previous month">vs tháng trước</span></div></div>
+    <div class="kpi"><div class="kpi-lbl"><span data-vi="Người dùng duy nhất" data-en="Unique Audience">Người dùng duy nhất</span> <span class="hint">i<span class="tt" data-vi="số tài khoản duy nhất tham gia thảo luận — COUNT DISTINCT AuthorId" data-en="number of unique accounts participating in discussions — COUNT DISTINCT AuthorId">số tài khoản duy nhất tham gia thảo luận — COUNT DISTINCT AuthorId</span></span></div><div class="kpi-val">39,545</div><div class="kpi-ch dn">▼ 11.2% <span data-vi="vs tháng trước" data-en="vs previous month">vs tháng trước</span></div></div>
   </div>
-  <div class="metrics-row fu2" id="sov-metrics"></div>
-  <div class="g31 fu3">
+  <div class="ibox-w" style="margin-bottom:10px;">
+    <div class="ititle ititle-w"><span data-vi="Nhận định — Khối lượng thảo luận" data-en="Insight — Volume">Nhận định — Khối lượng thảo luận</span></div>
+    <div class="itext itext-w"><span data-vi="tổng thảo luận giảm 8.8% chủ yếu do comments giảm mạnh (−18.5%), trong khi posts gốc tăng (+9.5%) — nội dung đang được tạo nhiều hơn nhưng chưa kích thích conversation. Unique audience giảm −11.2% cho thấy reach đang hẹp lại" data-en="total discussions dropped 8.8%, mainly due to a sharp decline in comments (−18.5%), while original posts increased (+9.5%) — more content is being created but it isn't sparking conversation. Unique audience fell −11.2%, indicating shrinking reach">tổng thảo luận giảm 8.8% chủ yếu do comments giảm mạnh (−18.5%), trong khi posts gốc tăng (+9.5%) — nội dung đang được tạo nhiều hơn nhưng chưa kích thích conversation. Unique audience giảm −11.2% cho thấy reach đang hẹp lại</span></div>
+    <ul class="alist alist-w">
+      <li><span data-vi="tăng CTA và interactive content để kéo comment engagement" data-en="increase CTAs and interactive content to drive comment engagement">tăng CTA và interactive content để kéo comment engagement</span></li>
+      <li><span data-vi="review nội dung kênh chủ lực (TikTok/Facebook) để tìm điểm nghẽn" data-en="review content on key channels (TikTok/Facebook) to identify bottlenecks">review nội dung kênh chủ lực (TikTok/Facebook) để tìm điểm nghẽn</span></li>
+      <li><span data-vi="boost paid cho các posts có organic tốt nhất" data-en="boost paid spend on the best-performing organic posts">boost paid cho các posts có organic tốt nhất</span></li>
+    </ul>
+  </div>
+  <div class="ilegend">
+    <div style="font-size:10px;font-weight:500;color:#1E3A5F;margin-right:4px;"><span data-vi="Màu insight:" data-en="Insight colors:">Màu insight:</span></div>
+    <div class="il-item"><span class="bp" style="padding:1px 5px;" data-vi="xanh lá" data-en="green">xanh lá</span> <span data-vi="tích cực, cần phát huy" data-en="positive, worth reinforcing">tích cực, cần phát huy</span></div>
+    <div class="il-item"><span class="bne" style="padding:1px 5px;" data-vi="vàng" data-en="yellow">vàng</span> <span data-vi="cảnh báo, cần theo dõi" data-en="caution, needs monitoring">cảnh báo, cần theo dõi</span></div>
+    <div class="il-item"><span style="background:rgba(232,244,253,.6);border:1px solid rgba(30,107,184,.3);color:#0D47A1;border-radius:5px;padding:1px 5px;font-size:10px;" data-vi="xanh dương" data-en="blue">xanh dương</span> <span data-vi="thông tin / trung tính" data-en="informational / neutral">thông tin / trung tính</span></div>
+  </div>
+
+  <div class="g2-6" style="margin-top:10px;">
     <div class="card">
-      <div class="card-title">Mention Trendline — Daily <span class="tip">?<span class="tip-txt">total mentions (posts + comments) recorded per day across all channels. spikes may indicate viral content, campaigns or brand incidents. red dots = top 3 key events.</span></span></div>
-      <div class="trend-wrap"><canvas id="trendlineChart"></canvas></div>
+      <div class="card-hd"><span data-vi="Xu hướng mentions trong 30 ngày" data-en="Mention trend over 30 days">Xu hướng mentions trong 30 ngày</span> <span class="hint">i<span class="tt" data-vi="số mentions mỗi ngày trong 30 ngày — giúp xác định peak buzz và momentum shift" data-en="number of mentions per day over 30 days — helps identify buzz peaks and momentum shifts">số mentions mỗi ngày trong 30 ngày — giúp xác định peak buzz và momentum shift</span></span></div>
+      <div style="position:relative;height:145px;"><canvas id="trendC"></canvas></div>
+      <div style="margin-top:8px;">
+        <div class="peak-event"><div class="peak-hd"><span class="peak-dot" style="background:#1E6BB8;"></span><span class="peak-date">30/04 — <span data-vi="Đỉnh" data-en="Peak">Đỉnh</span> #1</span><span class="peak-val">3,925 <span data-vi="mentions" data-en="mentions">mentions</span></span><span class="bp" style="margin-left:auto;" data-vi="Tích cực" data-en="Positive">Tích cực</span></div><div class="peak-post">📘 FB @Phanh Tran: "5 MÀU – 5 DÒNG Hada Labo — CHỌN ĐÚNG LÀ DA ĐẸP NGAY" → <span data-vi="viral product guide kéo traffic tự nhiên" data-en="viral product guide that drove organic traffic">viral product guide kéo traffic tự nhiên</span></div></div>
+        <div class="peak-event"><div class="peak-hd"><span class="peak-dot" style="background:#F57C00;"></span><span class="peak-date">13/05 — <span data-vi="Đỉnh" data-en="Peak">Đỉnh</span> #2</span><span class="peak-val">3,826 <span data-vi="mentions" data-en="mentions">mentions</span></span><span class="bp" style="margin-left:auto;" data-vi="Tích cực" data-en="Positive">Tích cực</span></div><div class="peak-post">🎵 TikTok @duog_20_1: "Giá thành rẻ nhưng chất lượng #hadalabo #viral" → <span data-vi="organic viral về chất lượng" data-en="organic viral around product quality">organic viral về chất lượng</span></div></div>
+        <div class="peak-event"><div class="peak-hd"><span class="peak-dot" style="background:#4A9DCC;"></span><span class="peak-date">05/05 — <span data-vi="Đỉnh" data-en="Peak">Đỉnh</span> #3</span><span class="peak-val">3,385 <span data-vi="mentions" data-en="mentions">mentions</span></span><span class="bp" style="margin-left:auto;" data-vi="Tích cực" data-en="Positive">Tích cực</span></div><div class="peak-post">📘 FB @Mẹ Bỉm Sữa: "những thứ nhất định chị em không thể thiếu để có làn da như mơ ước" → <span data-vi="shopping list content kéo mentions" data-en="shopping list content that drove mentions">shopping list content kéo mentions</span></div></div>
+      </div>
     </div>
     <div class="card">
-      <div class="card-title">Top 3 Key Events <span class="tip">?<span class="tip-txt">top posts ranked by reactions. highest-engagement conversations driving buzz around hada labo in the selected period. red dots on the trendline mark these dates.</span></span></div>
-      <div id="ke-list" class="ke-list"><div class="loading-bar"><span></span><span></span><span></span></div></div>
+      <div class="card-hd"><span data-vi="Đóng góp theo nền tảng" data-en="Platform contribution">Đóng góp theo nền tảng</span> <span class="hint">i<span class="tt" data-vi="% đóng góp buzz theo kênh — mentions kênh / tổng mentions × 100%" data-en="% of buzz contributed by each channel — channel mentions / total mentions × 100%">% đóng góp buzz theo kênh — mentions kênh / tổng mentions × 100%</span></span></div>
+      <div id="chRows"></div>
+      <div class="ibox" style="margin-top:6px;"><div class="ititle" data-vi="Nhận định" data-en="Insight">Nhận định</div><div class="itext"><span data-vi="TikTok + Facebook chiếm 99.1% tổng buzz. YouTube chỉ 0.4% — cơ hội lớn chưa được khai thác" data-en="TikTok + Facebook account for 99.1% of total buzz. YouTube is only 0.4% — a major untapped opportunity">TikTok + Facebook chiếm 99.1% tổng buzz. YouTube chỉ 0.4% — cơ hội lớn chưa được khai thác</span></div></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span data-vi="Top 10 nguồn thảo luận nổi bật" data-en="Top 10 notable discussion sources">Top 10 nguồn thảo luận nổi bật</span> <span class="hint">i<span class="tt" data-vi="trang hoặc nguồn tạo ra volume thảo luận cao nhất về thương hiệu trong kỳ" data-en="pages or sources generating the highest discussion volume about the brand during the period">trang hoặc nguồn tạo ra volume thảo luận cao nhất về thương hiệu trong kỳ</span></span></div>
+    <div id="srcRows"></div>
+    <div class="ibox-w" style="margin-top:8px;"><div class="ititle ititle-w" data-vi="Lưu ý" data-en="Note">Lưu ý</div><div class="itext itext-w"><span data-vi="HannahOlala và lorealparis_vn là competitor pages — conversations về Hada Labo đang xuất hiện trong content đối thủ. cần monitor và tìm cách convert audience này" data-en="HannahOlala and lorealparis_vn are competitor pages — conversations about Hada Labo are appearing in competitor content. should monitor and find ways to convert this audience">HannahOlala và lorealparis_vn là competitor pages — conversations về Hada Labo đang xuất hiện trong content đối thủ. cần monitor và tìm cách convert audience này</span></div></div>
+  </div>
+</div>
+
+<!-- TAB 2: TOPICS -->
+<div id="d-topic" class="dim-sec">
+  <div class="sec-title"><span data-vi="Chủ đề thảo luận" data-en="Topics of Discussion">Chủ đề thảo luận</span></div>
+  <div class="kpi3">
+    <div class="kpi"><div class="kpi-lbl"><span data-vi="Chủ đề hàng đầu" data-en="Top topic">Chủ đề hàng đầu</span> <span class="hint">i<span class="tt" data-vi="topic có volume discussions cao nhất trong kỳ" data-en="topic with the highest discussion volume during the period">topic có volume discussions cao nhất trong kỳ</span></span></div><div class="kpi-val" style="font-size:12px;line-height:1.4;margin-top:2px;"><span data-vi="Trải nghiệm mua sắm" data-en="Shopping Experience">Trải nghiệm mua sắm</span></div><div class="kpi-ch neu">22,735 <span data-vi="mentions" data-en="mentions">mentions</span> · 30.1%</div></div>
+    <div class="kpi" style="border-left-color:#C0392B;"><div class="kpi-lbl"><span data-vi="Chủ đề tiêu cực hàng đầu" data-en="Top negative topic">Chủ đề tiêu cực hàng đầu</span> <span class="hint">i<span class="tt" data-vi="topic có nhiều Negative mentions nhất" data-en="topic with the most negative mentions">topic có nhiều Negative mentions nhất</span></span></div><div class="kpi-val" style="font-size:12px;color:#C0392B;line-height:1.4;margin-top:2px;"><span data-vi="Trải nghiệm mua sắm" data-en="Shopping Experience">Trải nghiệm mua sắm</span></div><div class="kpi-ch dn">42 <span data-vi="lượt nhắc tiêu cực" data-en="negative mentions">lượt nhắc tiêu cực</span></div></div>
+    <div class="kpi" style="border-left-color:#2E7D32;"><div class="kpi-lbl"><span data-vi="Tỉ lệ tích cực cao nhất" data-en="Highest positive rate">Tỉ lệ tích cực cao nhất</span> <span class="hint">i<span class="tt" data-vi="topic có tỉ lệ Positive cao nhất — Positive / Total × 100%" data-en="topic with the highest positive rate — Positive / Total × 100%">topic có tỉ lệ Positive cao nhất — Positive / Total × 100%</span></span></div><div class="kpi-val" style="font-size:12px;color:#2E7D32;line-height:1.4;margin-top:2px;"><span data-vi="Chất lượng sản phẩm" data-en="Product Quality">Chất lượng sản phẩm</span></div><div class="kpi-ch up">33.9% <span data-vi="tỉ lệ tích cực" data-en="positive rate">tỉ lệ tích cực</span></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><span data-vi="Phân bổ chủ đề — tổng quan" data-en="Topic distribution — overall">Phân bổ chủ đề — tổng quan</span> <span class="hint">i<span class="tt" data-vi="phân bổ % volume theo từng topic trong tổng thảo luận — topics dưới 2% được gộp vào Others" data-en="% volume distribution by topic across total discussions — topics under 2% are grouped into Others">phân bổ % volume theo từng topic trong tổng thảo luận — topics dưới 2% được gộp vào Others</span></span></div>
+      <div style="position:relative;height:220px;"><canvas id="topicPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span data-vi="Tỉ lệ cảm xúc tổng thể" data-en="Overall sentiment split">Tỉ lệ cảm xúc tổng thể</span> <span class="hint">i<span class="tt" data-vi="phân bổ Positive / Neutral / Negative trong tổng discussions" data-en="distribution of Positive / Neutral / Negative across total discussions">phân bổ Positive / Neutral / Negative trong tổng discussions</span></span></div>
+      <div style="position:relative;height:150px;"><canvas id="sentPie"></canvas></div>
+      <div class="lrow" style="justify-content:center;margin-top:4px;"><div class="li"><span class="bp" style="padding:1px 5px;"><span data-vi="Tích cực" data-en="Positive">Tích cực</span> 25.5%</span></div><div class="li"><span class="bne" style="padding:1px 5px;"><span data-vi="Trung tính" data-en="Neutral">Trung tính</span> 74.4%</span></div><div class="li"><span class="bn" style="padding:1px 5px;"><span data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span> 0.2%</span></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span data-vi="Chi tiết chủ đề — nhấn để xem Positive / Neutral / Negative" data-en="Topic breakdown — click to view Positive / Neutral / Negative">Chi tiết chủ đề — nhấn để xem Positive / Neutral / Negative</span> <span class="hint">i<span class="tt" data-vi="nhấn vào từng topic để xem breakdown sentiment và top posts đại diện cho từng nhóm" data-en="click each topic to view sentiment breakdown and representative top posts for each group">nhấn vào từng topic để xem breakdown sentiment và top posts đại diện cho từng nhóm</span></span></div>
+    <div style="font-size:10px;color:#5a7a99;margin-bottom:8px;">👆 <span data-vi="nhấn vào từng topic để xem chi tiết" data-en="click each topic to see details">nhấn vào từng topic để xem chi tiết</span></div>
+    <div class="lrow" style="margin-bottom:10px;">
+      <div class="li"><span style="width:10px;height:10px;background:rgba(200,240,210,.75);border:1px solid rgba(76,175,80,.4);border-radius:2px;display:inline-block;"></span><span data-vi="Tích cực" data-en="Positive">Tích cực</span></div>
+      <div class="li"><span style="width:10px;height:10px;background:rgba(255,243,195,.75);border:1px solid rgba(255,193,7,.4);border-radius:2px;display:inline-block;"></span><span data-vi="Trung tính" data-en="Neutral">Trung tính</span></div>
+      <div class="li"><span style="width:10px;height:10px;background:rgba(255,205,205,.75);border:1px solid rgba(244,67,54,.4);border-radius:2px;display:inline-block;"></span><span data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span></div>
+    </div>
+    <div id="topicLayerBars"></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><span data-vi="Chủ đề gây ra lượt nhắc tiêu cực" data-en="Topics driving negative mentions">Chủ đề gây ra lượt nhắc tiêu cực</span> <span class="hint">i<span class="tt" data-vi="các topics có nhiều negative community response nhất — cần theo dõi và xử lý ngay" data-en="topics with the most negative community response — need monitoring and immediate action">các topics có nhiều negative community response nhất — cần theo dõi và xử lý ngay</span></span></div>
+      <div id="negRows"></div>
+      <div class="ibox-w" style="margin-top:8px;"><div class="ititle ititle-w" data-vi="Hành động cần thiết" data-en="Action needed">Hành động cần thiết</div><ul class="alist alist-w">
+        <li><span data-vi="mua sắm (42 neg): phản hồi công khai các phàn nàn về giao hàng/cửa hàng" data-en="shopping (42 neg): respond publicly to delivery/store complaints">mua sắm (42 neg): phản hồi công khai các phàn nàn về giao hàng/cửa hàng</span></li>
+        <li><span data-vi="brand image (39 neg): audit messaging bị backlash, điều chỉnh tone" data-en="brand image (39 neg): audit messaging that received backlash, adjust tone">brand image (39 neg): audit messaging bị backlash, điều chỉnh tone</span></li>
+        <li><span data-vi="chất lượng (27 neg): escalate lên product team nếu liên quan lô hàng cụ thể" data-en="quality (27 neg): escalate to product team if related to a specific batch">chất lượng (27 neg): escalate lên product team nếu liên quan lô hàng cụ thể</span></li>
+      </ul></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span data-vi="Chủ đề thúc đẩy thảo luận hàng đầu" data-en="Top conversation drivers">Chủ đề thúc đẩy thảo luận hàng đầu</span> <span class="hint">i<span class="tt" data-vi="các chủ đề tạo buzz lớn nhất — đóng góp nhiều nhất vào tổng thảo luận" data-en="topics generating the highest buzz — contributing most to total discussions">các chủ đề tạo buzz lớn nhất — đóng góp nhiều nhất vào tổng thảo luận</span></span></div>
+      <div style="position:relative;height:220px;"><canvas id="driverC"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: AUDIENCE -->
+<div id="d-perc" class="dim-sec">
+  <div class="sec-title"><span data-vi="Phân tích cảm xúc về Hada Labo" data-en="Sentiment analysis of Hada Labo mentions">Phân tích cảm xúc về Hada Labo</span></div>
+  <div class="kpi3">
+    <div class="kpi" style="border-left-color:#2E7D32;"><div class="kpi-lbl"><span data-vi="NSR — Tháng này" data-en="NSR — This month">NSR — Tháng này</span> <span class="hint">i<span class="tt" data-vi="Net Sentiment Rate: (Positive − Negative) / (Positive + Negative) × 100%" data-en="Net Sentiment Rate: (Positive − Negative) / (Positive + Negative) × 100%">Net Sentiment Rate: (Positive − Negative) / (Positive + Negative) × 100%</span></span></div><div class="kpi-val" style="color:#2E7D32;">99.3%</div><div class="kpi-ch up">▲ <span data-vi="từ 97.9% tháng trước" data-en="from 97.9% last month">từ 97.9% tháng trước</span></div></div>
+    <div class="kpi" style="border-left-color:#2E7D32;"><div class="kpi-lbl"><span data-vi="Lượt nhắc tích cực" data-en="Positive mentions">Lượt nhắc tích cực</span></div><div class="kpi-val" style="color:#2E7D32;">19,240</div><div class="kpi-ch neu">25.5% <span data-vi="tổng discussions" data-en="of total discussions">tổng discussions</span></div></div>
+    <div class="kpi" style="border-left-color:#C0392B;"><div class="kpi-lbl"><span data-vi="Lượt nhắc tiêu cực" data-en="Negative mentions">Lượt nhắc tiêu cực</span></div><div class="kpi-val" style="color:#C0392B;">134</div><div class="kpi-ch up">▼ 63% <span data-vi="vs tháng trước" data-en="vs previous month">vs tháng trước</span></div></div>
   </div>
   <div class="g2">
     <div class="card">
-      <div class="card-title">Platform Contribution <span class="tip">?<span class="tip-txt">share of total mentions by social channel (facebook, tiktok, youtube, threads, instagram, news, forum). shows where the brand conversation lives.</span></span></div>
-      <div style="display:flex;gap:20px;align-items:center">
-        <div class="donut-wrap" style="width:150px;height:150px;flex-shrink:0">
-          <canvas id="channelDonut" width="150" height="150"></canvas>
-          <div class="donut-ctr"><div class="donut-big" id="donut-total">—</div><div class="donut-sm">Đề cập</div></div>
-        </div>
-        <div style="flex:1">
-          <div id="channel-legend" class="legend"></div>
-          <div id="channel-bars" style="margin-top:14px"></div>
-        </div>
+      <div class="card-hd"><span data-vi="Cảm xúc theo nền tảng" data-en="Sentiment by platform">Cảm xúc theo nền tảng</span></div>
+      <div style="position:relative;height:155px;"><canvas id="sentCh"></canvas></div>
+      <div class="lrow" style="justify-content:center;"><div class="li"><span class="bp" style="padding:1px 4px;" data-vi="Tích cực" data-en="Positive">Tích cực</span></div><div class="li"><span class="bne" style="padding:1px 4px;" data-vi="Trung tính" data-en="Neutral">Trung tính</span></div><div class="li"><span class="bn" style="padding:1px 4px;" data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span data-vi="Sức khỏe thương hiệu (NSR) — Tháng 4 vs Tháng 5" data-en="Brand Health (NSR) — Apr vs May">Sức khỏe thương hiệu (NSR) — Tháng 4 vs Tháng 5</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0;">
+        <div style="text-align:center;"><div style="font-size:11px;color:#5a7a99;margin-bottom:4px;"><span data-vi="Tháng 4 (trước)" data-en="Apr (Previous)">Tháng 4 (trước)</span></div><div style="position:relative;height:75px;"><canvas id="nsrPrev"></canvas></div><div style="font-size:18px;font-weight:500;color:#8B6914;margin-top:2px;">97.9%</div><div style="font-size:10px;color:#5a7a99;">Pos: 9,191 · Neg: 98</div></div>
+        <div style="text-align:center;"><div style="font-size:11px;color:#5a7a99;margin-bottom:4px;"><span data-vi="Tháng 5 (hiện tại)" data-en="May (Current)">Tháng 5 (hiện tại)</span></div><div style="position:relative;height:75px;"><canvas id="nsrCurr"></canvas></div><div style="font-size:18px;font-weight:500;color:#2E7D32;margin-top:2px;">99.3%</div><div style="font-size:10px;color:#5a7a99;">Pos: 10,049 · Neg: 36</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="ibox-p" style="margin-bottom:10px;"><div class="ititle ititle-p" data-vi="Nhận định — Sức khỏe thương hiệu" data-en="Insight — Brand Health">Nhận định — Sức khỏe thương hiệu</div><div class="itext itext-p"><span data-vi="NSR cải thiện mạnh từ 97.9% → 99.3%, negative mentions giảm 63%. Facebook ghi nhận sentiment positive cao nhất (44.4%), TikTok chủ yếu Neutral (93%). News channel có tỉ lệ negative cao nhất — cần theo dõi media coverage" data-en="NSR improved significantly from 97.9% → 99.3%, negative mentions dropped 63%. Facebook recorded the highest positive sentiment (44.4%), while TikTok is mostly Neutral (93%). News channel has the highest negative rate — media coverage should be monitored">NSR cải thiện mạnh từ 97.9% → 99.3%, negative mentions giảm 63%. Facebook ghi nhận sentiment positive cao nhất (44.4%), TikTok chủ yếu Neutral (93%). News channel có tỉ lệ negative cao nhất — cần theo dõi media coverage</span></div><ul class="alist alist-p">
+    <li><span data-vi="phát huy nội dung hoạt động tốt trên Facebook để duy trì NSR" data-en="leverage well-performing content on Facebook to maintain NSR">phát huy nội dung hoạt động tốt trên Facebook để duy trì NSR</span></li>
+    <li><span data-vi="monitor News channel thường xuyên vì tỉ lệ Negative cao nhất (26.9%)" data-en="monitor the News channel regularly given its highest negative rate (26.9%)">monitor News channel thường xuyên vì tỉ lệ Negative cao nhất (26.9%)</span></li>
+    <li><span data-vi="tạo thêm nội dung kích thích phản hồi tích cực trên TikTok" data-en="create more content that encourages positive responses on TikTok">tạo thêm nội dung kích thích phản hồi tích cực trên TikTok</span></li>
+  </ul></div>
+  <div class="divider"></div>
+  <div class="sec-title"><span data-vi="Nhân khẩu học khán giả" data-en="Audience Demographics">Nhân khẩu học khán giả</span></div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-hd"><span data-vi="Phân bổ giới tính" data-en="Gender Distribution">Phân bổ giới tính</span> <span class="hint">i<span class="tt" data-vi="ước tính dựa trên profile người dùng tham gia thảo luận về Hada Labo — tham khảo từ beauty category benchmark tại VN" data-en="estimated based on user profiles discussing Hada Labo — referenced from Vietnam beauty category benchmarks">ước tính dựa trên profile người dùng tham gia thảo luận về Hada Labo — tham khảo từ beauty category benchmark tại VN</span></span></div>
+      <div style="position:relative;height:120px;"><canvas id="genderPie"></canvas></div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:4px;font-size:11px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E91E63" stroke-width="2"><circle cx="12" cy="6" r="4"/><path d="M12 10v14M8 18h8"/></svg><span style="color:#C2185B;font-weight:500;"><span data-vi="Nữ" data-en="Female">Nữ</span> 78%</span></div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:11px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M20 4l-8 8M20 4h-6M20 4v6"/></svg><span style="color:#1565C0;font-weight:500;"><span data-vi="Nam" data-en="Male">Nam</span> 15%</span></div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:11px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="12" cy="9" r="4"/><path d="M12 13v8"/></svg><span style="color:#888;font-weight:500;"><span data-vi="Khác" data-en="Other">Khác</span> 7%</span></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Top 10 Notable Discussion Sources <span class="tip">?<span class="tip-txt">pages, accounts, sites or groups generating the most discussion volume about hada labo. useful for influencer & community management targeting.</span></span></div>
-      <div id="source-wrap"><div class="loading-bar"><span></span><span></span><span></span></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- TAB 2 -->
-<div id="tab-topics" class="tab-panel">
-  <div class="g2 fu" style="margin-bottom:16px">
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-green">Điểm mạnh cần duy trì</div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span><b>Trải nghiệm mua sắm & cửa hàng</b> chiếm khoảng 30% tổng thảo luận — cần giữ vững hiện diện tại điểm bán, trưng bày nổi bật và đội ngũ tư vấn chủ động tại Hasaki, Guardian.</span></div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span><b>Hình ảnh & truyền thông thương hiệu</b> đứng thứ hai với 22% — cho thấy các hoạt động content và KOL seeding đang có phản hồi tốt từ người dùng, đáng tiếp tục mở rộng.</span></div>
-    </div>
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-red">Điểm cần xem lại</div>
-      <div id="neg-topics-content"></div>
-    </div>
-  </div>
-
-  <div class="g2 fu2">
-    <div class="card">
-      <div class="card-title">Topic Distribution — All Discussions <span class="tip">?<span class="tip-txt">how total mentions are distributed across key discussion themes. topics are classified based on post/comment content. click a slice to see top posts.</span></span></div>
-      <div style="height:280px;position:relative;margin-top: 100px;"><canvas id="topicsDonut"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Topic Volume Ranking <span class="tip">?<span class="tip-txt">ranked list of discussion topics by total mention volume. bar length represents share of total mentions. click a topic to see top posts.</span></span></div>
-      <div id="topic-bars"><div class="loading-bar"><span></span><span></span><span></span></div></div>
-    </div>
-  </div>
-
-  <div class="card fu3 mb16">
-    <div class="card-title">Sentiment Distribution by Topic <span class="tip">?<span class="tip-txt">for each topic, the proportion of positive, neutral and negative sentiment. click a bar to view top 3 posts for that topic.</span></span></div>
-    <div style="height:320px"><canvas id="topicSentimentChart"></canvas></div>
-  </div>
-</div>
-
-<!-- TAB 3 -->
-<div id="tab-perception" class="tab-panel">
-  <div class="g2 fu" style="margin-bottom:16px">
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-green">Điểm mạnh về cảm nhận</div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span>NSR tăng từ <b>97.9% lên 99.3%</b> — phần lớn thảo luận đang mang tính tích cực, người dùng tiếp tục chia sẻ trải nghiệm tốt về sản phẩm một cách tự nhiên.</span></div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span>Lượng đề cập tiêu cực giảm <b>63%</b> so với tháng trước — đây là chỉ số quan trọng nên đưa vào báo cáo tháng, phản ánh nỗ lực quản lý cộng đồng có hiệu quả.</span></div>
-    </div>
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-red">Điểm cần theo dõi</div>
-      <div class="ins-item"><span class="ins-bullet warn"></span><span>Facebook có tỷ lệ phản hồi tiêu cực cao hơn TikTok — nên tập trung nguồn lực quản lý cộng đồng ở đây, đặc biệt trong phần bình luận bài viết.</span></div>
-      <div class="ins-item"><span class="ins-bullet warn"></span><span>Đề cập tiêu cực chủ yếu rơi vào <b>Trải nghiệm mua sắm</b> và <b>Hình ảnh thương hiệu</b> — có thể liên quan đến vấn đề hàng tồn kho hoặc nội dung quảng cáo chưa khớp kỳ vọng thực tế.</span></div>
-    </div>
-  </div>
-
-  <div class="g3 fu2">
-    <div class="card">
-      <div class="card-title">Brand Health — NSR <span class="tip">?<span class="tip-txt">net sentiment rate (nsr) = (positive mentions − negative mentions) / (positive + negative) × 100%. closer to 100% = stronger brand advocacy. neutral mentions excluded from formula.</span></span></div>
-      <div id="nsr-panel"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Overall Sentiment Split <span class="tip">?<span class="tip-txt">proportion of all mentions classified as positive, neutral or negative. neutral mentions are conversations mentioning the brand without strong positive or negative language.</span></span></div>
-      <div style="height:170px;position:relative">
-        <canvas id="sentimentDonut"></canvas>
-        <div class="donut-ctr" style="top:48%"><div class="donut-big" id="sent-pct">—</div><div class="donut-sm">Tích cực</div></div>
+      <div class="card-hd"><span data-vi="Phân bổ độ tuổi" data-en="Age Distribution">Phân bổ độ tuổi</span> <span class="hint">i<span class="tt" data-vi="ước tính dựa trên profile và hành vi thảo luận của người dùng trong kỳ báo cáo" data-en="estimated based on user profiles and discussion behavior during the report period">ước tính dựa trên profile và hành vi thảo luận của người dùng trong kỳ báo cáo</span></span></div>
+      <div style="position:relative;height:120px;"><canvas id="agePie"></canvas></div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:8px;">
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#1E6BB8;border-radius:2px;"></span>18-24: 38%</span>
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#4A9DCC;border-radius:2px;"></span>25-34: 35%</span>
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#85B7EB;border-radius:2px;"></span>35-44: 18%</span>
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#B5D4F4;border-radius:2px;"></span>45+: 9%</span>
       </div>
-      <div class="legend" id="sentiment-legend" style="margin-top:8px;justify-content:center"></div>
     </div>
     <div class="card">
-      <div class="card-title">Sentiment by Channel <span class="tip">?<span class="tip-txt">sentiment breakdown per social channel. identifies which platforms generate stronger or weaker audience perception toward hada labo.</span></span></div>
-      <div style="height:170px"><canvas id="sentimentChannelChart"></canvas></div>
-    </div>
-  </div>
-
-  <div class="g2 fu3">
-    <div class="card">
-      <div class="card-title">Sentiment Trend Over Time <span class="tip">?<span class="tip-txt">daily breakdown of positive, neutral and negative mentions. helps identify when sentiment shifted and correlate with external events or campaigns.</span></span></div>
-      <div style="height:200px"><canvas id="sentimentTrendChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Negative Mentions by Topic <span class="tip">?<span class="tip-txt">topics ranked by number of negative mentions. these represent areas where audience perception is weakest and community management action is most needed.</span></span></div>
-      <div id="neg-topic-detail"><div class="loading-bar"><span></span><span></span><span></span></div></div>
+      <div class="card-hd"><span data-vi="Loại nội dung" data-en="Content Type">Loại nội dung</span> <span class="hint">i<span class="tt" data-vi="phân bổ discussions theo loại — post gốc vs bình luận phản hồi" data-en="distribution of discussions by type — original posts vs reply comments">phân bổ discussions theo loại — post gốc vs bình luận phản hồi</span></span></div>
+      <div style="position:relative;height:120px;"><canvas id="typePie"></canvas></div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:8px;">
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#1E6BB8;border-radius:2px;"></span><span data-vi="Bài đăng" data-en="Posts">Bài đăng</span> 37.9%</span>
+        <span style="font-size:10px;color:#5a7a99;display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#85B7EB;border-radius:2px;"></span><span data-vi="Bình luận" data-en="Comments">Bình luận</span> 62.1%</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- TAB 4 -->
-<div id="tab-mom" class="tab-panel">
-  <div class="g2 fu" style="margin-bottom:16px">
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-green">Tháng 5 cải thiện so với tháng 4</div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span>Tổng tương tác tăng <b>+2.9%</b> — người dùng tương tác sâu hơn với nội dung tháng 5, cho thấy chất lượng nội dung hoặc thời điểm đăng bài đang tốt hơn.</span></div>
-      <div class="ins-item"><span class="ins-bullet good"></span><span>Đề cập tiêu cực giảm <b>63%</b> — cải thiện rõ rệt về sức khỏe thương hiệu, đáng ghi nhận trong báo cáo tháng này.</span></div>
-    </div>
-    <div class="ins-box" style="margin-bottom:0">
-      <div class="ins-title-red">Điểm cần chú ý</div>
-      <div class="ins-item"><span class="ins-bullet warn"></span><span>Tổng đề cập giảm <b>8.8%</b> so với tháng 4 — tuy nhiên chất lượng thảo luận tốt hơn, nên đây không phải tín hiệu xấu mà cần phân tích thêm nguyên nhân giảm khối lượng.</span></div>
-      <div class="ins-item"><span class="ins-bullet warn"></span><span>Số tác giả duy nhất giảm từ 23.161 xuống 20.575 — cần các hoạt động kích hoạt cộng đồng để mở rộng tập người dùng tham gia thảo luận trong các tháng tới.</span></div>
-    </div>
+<!-- TAB 4: MoM -->
+<div id="d-mom" class="dim-sec">
+  <div class="sec-title"><span data-vi="So sánh theo tháng — Tháng 4/2026 vs Tháng 5/2026" data-en="Month-over-Month — Apr 2026 vs May 2026">So sánh theo tháng — Tháng 4/2026 vs Tháng 5/2026</span></div>
+  <div class="kpi4">
+    <div class="kpi" style="border-left-color:#8B6914;"><div class="kpi-lbl"><span data-vi="Tổng thảo luận" data-en="Total Discussions">Tổng thảo luận</span></div><div style="display:flex;align-items:baseline;gap:6px;"><div><div style="font-size:9px;color:#5a7a99;"><span data-vi="T4" data-en="Apr">T4</span></div><div style="font-size:13px;font-weight:500;color:#5a7a99;">39,541</div></div><div style="font-size:14px;color:#D0E4F5;">→</div><div><div style="font-size:9px;color:#1E3A5F;"><span data-vi="T5" data-en="May">T5</span></div><div style="font-size:13px;font-weight:500;color:#1E3A5F;">36,045</div></div></div><div class="kpi-ch dn">▼ 8.8%</div></div>
+    <div class="kpi" style="border-left-color:#2E7D32;"><div class="kpi-lbl"><span data-vi="Tổng bài đăng" data-en="Total Posts">Tổng bài đăng</span></div><div style="display:flex;align-items:baseline;gap:6px;"><div><div style="font-size:9px;color:#5a7a99;"><span data-vi="T4" data-en="Apr">T4</span></div><div style="font-size:13px;font-weight:500;color:#5a7a99;">13,672</div></div><div style="font-size:14px;color:#D0E4F5;">→</div><div><div style="font-size:9px;color:#1E3A5F;"><span data-vi="T5" data-en="May">T5</span></div><div style="font-size:13px;font-weight:500;color:#1E3A5F;">14,970</div></div></div><div class="kpi-ch up">▲ +9.5%</div></div>
+    <div class="kpi" style="border-left-color:#C0392B;"><div class="kpi-lbl"><span data-vi="Tổng bình luận" data-en="Total Comments">Tổng bình luận</span></div><div style="display:flex;align-items:baseline;gap:6px;"><div><div style="font-size:9px;color:#5a7a99;"><span data-vi="T4" data-en="Apr">T4</span></div><div style="font-size:13px;font-weight:500;color:#5a7a99;">25,869</div></div><div style="font-size:14px;color:#D0E4F5;">→</div><div><div style="font-size:9px;color:#1E3A5F;"><span data-vi="T5" data-en="May">T5</span></div><div style="font-size:13px;font-weight:500;color:#1E3A5F;">21,075</div></div></div><div class="kpi-ch dn">▼ −18.5%</div></div>
+    <div class="kpi" style="border-left-color:#8B6914;"><div class="kpi-lbl"><span data-vi="Người dùng duy nhất" data-en="Unique Audience">Người dùng duy nhất</span></div><div style="display:flex;align-items:baseline;gap:6px;"><div><div style="font-size:9px;color:#5a7a99;"><span data-vi="T4" data-en="Apr">T4</span></div><div style="font-size:13px;font-weight:500;color:#5a7a99;">23,161</div></div><div style="font-size:14px;color:#D0E4F5;">→</div><div><div style="font-size:9px;color:#1E3A5F;"><span data-vi="T5" data-en="May">T5</span></div><div style="font-size:13px;font-weight:500;color:#1E3A5F;">20,575</div></div></div><div class="kpi-ch dn">▼ −11.2%</div></div>
   </div>
-
-  <!-- DUAL LINE TRENDLINE -->
-  <div class="card fu2 mb16">
-    <div class="card-title">Overall Mention & Interaction Trendline <span class="tip">?<span class="tip-txt">daily mention and interaction trend for both selected months overlaid. solid line = mentions, dashed line = interactions (scaled). compare rhythm, peaks, and momentum between periods.</span></span></div>
-    <div style="height:220px"><canvas id="momTrendChart"></canvas></div>
-  </div>
-
-  <div class="g2 fu3">
-    <div class="mom-card" id="mom-card-a">
-      <div class="mom-hdr" id="mom-hdr-a">📅 LAST MONTH — April 2026</div>
-      <div class="mom-body" id="mom-body-a"></div>
-    </div>
-    <div class="mom-card" id="mom-card-b">
-      <div class="mom-hdr2" id="mom-hdr-b">📅 CURRENT MONTH — May 2026</div>
-      <div class="mom-body" id="mom-body-b"></div>
-    </div>
-  </div>
-
-  <div class="g2 fu3">
+  <div class="card"><div class="card-hd"><span data-vi="Xu hướng mentions — T4 vs T5 (theo ngày)" data-en="Mention trend — Apr vs May (daily)">Xu hướng mentions — T4 vs T5 (theo ngày)</span></div><div style="position:relative;height:160px;"><canvas id="momTrend"></canvas></div><div class="lrow" style="justify-content:center;margin-top:4px;"><div class="li"><span class="ls" style="background:#1E6BB8;"></span><span data-vi="Tháng 5/2026" data-en="May 2026">Tháng 5/2026</span></div><div class="li"><span class="ls" style="background:#B5D4F4;"></span><span data-vi="Tháng 4/2026 (nét đứt)" data-en="Apr 2026 (dashed)">Tháng 4/2026 (nét đứt)</span></div></div></div>
+  <div class="g2">
     <div class="card">
-      <div class="card-title">Mention Volume — Month Comparison <span class="tip">?<span class="tip-txt">total mentions per month shown side-by-side. used to track whether brand conversation is growing or shrinking over time.</span></span></div>
-      <div style="height:200px"><canvas id="momMentionChart"></canvas></div>
+      <div class="card-hd"><span data-vi="Cảm xúc — T4 vs T5" data-en="Sentiment — Apr vs May">Cảm xúc — T4 vs T5</span></div>
+      <div style="position:relative;height:160px;"><canvas id="momSent"></canvas></div>
+      <div class="lrow" style="justify-content:center;"><div class="li"><span class="bp" style="padding:1px 4px;" data-vi="Tích cực" data-en="Positive">Tích cực</span></div><div class="li"><span class="bne" style="padding:1px 4px;" data-vi="Trung tính" data-en="Neutral">Trung tính</span></div><div class="li"><span class="bn" style="padding:1px 4px;" data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span></div></div>
     </div>
     <div class="card">
-      <div class="card-title">Interactions — Month Comparison <span class="tip">?<span class="tip-txt">total interactions = posts + reactions + shares + comments per month. measures overall audience engagement with brand content.</span></span></div>
-      <div style="height:200px"><canvas id="momInteractChart"></canvas></div>
+      <div class="card-hd"><span data-vi="Biến động NSR & cảm xúc" data-en="NSR & sentiment shift">Biến động NSR &amp; cảm xúc</span></div>
+      <table class="mom-table">
+        <thead><tr><th data-vi="Chỉ số" data-en="Metric">Chỉ số</th><th data-vi="T4" data-en="Apr">T4</th><th data-vi="T5" data-en="May">T5</th><th>Δ</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:500;">NSR</td><td>97.9%</td><td style="color:#2E7D32;font-weight:500;">99.3%</td><td class="delta-up">▲ +1.4pp</td></tr>
+          <tr><td style="font-weight:500;"><span data-vi="Tích cực" data-en="Positive">Tích cực</span></td><td>9,191</td><td style="color:#2E7D32;font-weight:500;">10,049</td><td class="delta-up">▲ +9.3%</td></tr>
+          <tr><td style="font-weight:500;"><span data-vi="Trung tính" data-en="Neutral">Trung tính</span></td><td>30,252</td><td>25,960</td><td class="delta-dn">▼ −14.2%</td></tr>
+          <tr><td style="font-weight:500;"><span data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span></td><td>98</td><td style="color:#2E7D32;font-weight:500;">36</td><td class="delta-up">▼ −63.3%</td></tr>
+          <tr><td style="font-weight:500;"><span data-vi="Tỉ lệ tích cực" data-en="Positive rate">Tỉ lệ tích cực</span></td><td>23.2%</td><td style="color:#2E7D32;font-weight:500;">27.9%</td><td class="delta-up">▲ +4.7pp</td></tr>
+        </tbody>
+      </table>
+      <div class="ibox-p" style="margin-top:8px;"><div class="ititle ititle-p" data-vi="Nhận định" data-en="Insight">Nhận định</div><div class="itext itext-p"><span data-vi="sentiment tổng thể cải thiện rõ rệt — NSR tăng +1.4pp và negative giảm 63%. positive mentions tăng dù tổng discussions giảm, cho thấy chất lượng engagement đang tốt hơn số lượng" data-en="overall sentiment improved noticeably — NSR rose +1.4pp and negative mentions dropped 63%. positive mentions increased despite a decline in total discussions, indicating engagement quality is improving over quantity">sentiment tổng thể cải thiện rõ rệt — NSR tăng +1.4pp và negative giảm 63%. positive mentions tăng dù tổng discussions giảm, cho thấy chất lượng engagement đang tốt hơn số lượng</span></div></div>
     </div>
   </div>
-  <div class="g2 fu3">
-    <div class="card">
-      <div class="card-title">Sentiment Split — Month Comparison <span class="tip">?<span class="tip-txt">proportion of positive, neutral, negative mentions per month. tracks shifts in audience perception over time.</span></span></div>
-      <div style="height:200px"><canvas id="momSentimentChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Topic Shift — Month Comparison <span class="tip">?<span class="tip-txt">how the distribution of discussion topics changed between months. a growing topic may indicate a new trend, campaign response or emerging issue.</span></span></div>
-      <div style="height:200px"><canvas id="momTopicChart"></canvas></div>
-    </div>
-  </div>
+  <div class="card"><div class="card-hd"><span data-vi="Nền tảng — T4 vs T5" data-en="Platform — Apr vs May">Nền tảng — T4 vs T5</span></div><div style="position:relative;height:170px;"><canvas id="momCh"></canvas></div><div class="lrow" style="justify-content:center;margin-top:4px;"><div class="li"><span class="ls" style="background:#1E6BB8;"></span><span data-vi="Tháng 5/2026" data-en="May 2026">Tháng 5/2026</span></div><div class="li"><span class="ls" style="background:#B5D4F4;"></span><span data-vi="Tháng 4/2026" data-en="Apr 2026">Tháng 4/2026</span></div></div><div class="ibox-w" style="margin-top:8px;"><div class="ititle ititle-w" data-vi="Lưu ý" data-en="Note">Lưu ý</div><div class="itext itext-w"><span data-vi="Facebook vượt TikTok trong tháng May (18,100 vs 17,698). Tháng Apr TikTok dẫn đầu (19,901 vs 19,239). cần theo dõi xem đây là xu hướng hay biến động nhất thời" data-en="Facebook surpassed TikTok in May (18,100 vs 17,698). In April, TikTok led (19,901 vs 19,239). should monitor whether this is a trend or a temporary fluctuation">Facebook vượt TikTok trong tháng May (18,100 vs 17,698). Tháng Apr TikTok dẫn đầu (19,901 vs 19,239). cần theo dõi xem đây là xu hướng hay biến động nhất thời</span></div></div></div>
+</div>
 </div>
 
-</div>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="topicModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title" id="modal-topic-name">—</div>
-    <div class="modal-sub" id="modal-topic-sub">Top 3 bài viết nổi bật theo cảm xúc</div>
-    <div class="modal-sent-tabs">
-      <button class="ms-tab" id="tab-pos" onclick="showSentPosts('Positive')">✅ Tích cực</button>
-      <button class="ms-tab" id="tab-neg" onclick="showSentPosts('Negative')">⚠️ Tiêu cực</button>
-      <button class="ms-tab" id="tab-neu" onclick="showSentPosts('Neutral')">➖ Trung tính</button>
-    </div>
-    <div id="modal-posts"></div>
-  </div>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-// ─── DATA ───────────────────────────────────────
-const OV = {
-  "2026-04":{total_mentions:39541,total_posts:13672,total_comments:25869,total_reactions:4745380,total_shares:751296,total_interactions:5536217,positive:9191,negative:98,neutral:30252,nsr:97.9,unique_authors:23161},
-  "2026-05":{total_mentions:36045,total_posts:14970,total_comments:21075,total_reactions:4883722,total_shares:777634,total_interactions:5697401,positive:10049,negative:36,neutral:25960,nsr:99.3,unique_authors:20575}
-};
-const DAILY=[
-  {Date:"2026-04-15",mentions:3246,positive:950,negative:5,neutral:2291},{Date:"2026-04-16",mentions:2078,positive:718,negative:3,neutral:1357},
-  {Date:"2026-04-17",mentions:2580,positive:799,negative:3,neutral:1778},{Date:"2026-04-18",mentions:2048,positive:573,negative:6,neutral:1469},
-  {Date:"2026-04-19",mentions:1980,positive:443,negative:2,neutral:1535},{Date:"2026-04-20",mentions:1988,positive:590,negative:4,neutral:1394},
-  {Date:"2026-04-21",mentions:1920,positive:575,negative:2,neutral:1343},{Date:"2026-04-22",mentions:2215,positive:622,negative:5,neutral:1588},
-  {Date:"2026-04-23",mentions:2082,positive:665,negative:4,neutral:1413},{Date:"2026-04-24",mentions:1711,positive:508,negative:3,neutral:1200},
-  {Date:"2026-04-25",mentions:1672,positive:481,negative:2,neutral:1189},{Date:"2026-04-26",mentions:1620,positive:457,negative:1,neutral:1162},
-  {Date:"2026-04-27",mentions:2015,positive:590,negative:8,neutral:1417},{Date:"2026-04-28",mentions:2046,positive:562,negative:5,neutral:1479},
-  {Date:"2026-04-29",mentions:1798,positive:489,negative:3,neutral:1306},{Date:"2026-04-30",mentions:1542,positive:469,negative:3,neutral:1070},
-  {Date:"2026-05-01",mentions:1350,positive:419,negative:1,neutral:930},{Date:"2026-05-02",mentions:1380,positive:396,negative:1,neutral:983},
-  {Date:"2026-05-03",mentions:1556,positive:455,negative:1,neutral:1100},{Date:"2026-05-04",mentions:1418,positive:428,negative:3,neutral:987},
-  {Date:"2026-05-05",mentions:1600,positive:472,negative:1,neutral:1127},{Date:"2026-05-06",mentions:1621,positive:497,negative:2,neutral:1122},
-  {Date:"2026-05-07",mentions:1574,positive:490,negative:2,neutral:1082},{Date:"2026-05-08",mentions:1305,positive:398,negative:1,neutral:906},
-  {Date:"2026-05-09",mentions:1295,positive:393,negative:1,neutral:901},{Date:"2026-05-10",mentions:1208,positive:374,negative:2,neutral:832},
-  {Date:"2026-05-11",mentions:1493,positive:447,negative:4,neutral:1042},{Date:"2026-05-12",mentions:1525,positive:461,negative:4,neutral:1060},
-  {Date:"2026-05-13",mentions:1472,positive:452,negative:3,neutral:1017},{Date:"2026-05-14",mentions:1248,positive:367,negative:10,neutral:871}
+let currentLang='vi';
+let driverChartInstance=null;
+
+const topicLabels=[
+  {vi:'Trải nghiệm mua sắm',en:'Shopping Experience'},
+  {vi:'Hình ảnh thương hiệu',en:'Brand Image'},
+  {vi:'So sánh thương hiệu',en:'Brand Comparison'},
+  {vi:'Chất lượng sản phẩm',en:'Product Quality'},
+  {vi:'Dịch vụ khách hàng',en:'Customer Service'},
+  {vi:'Giao hàng & tiện ích',en:'Delivery & Convenience'},
+  {vi:'Khác',en:'Others'}
 ];
-const CHANNELS={
-  "2026-04":[{Channel:"Facebook",mentions:19239,pct:48.7},{Channel:"Tiktok",mentions:19901,pct:50.3},{Channel:"Youtube",mentions:197,pct:0.5},{Channel:"News",mentions:90,pct:0.2},{Channel:"Threads",mentions:80,pct:0.2},{Channel:"Instagram",mentions:29,pct:0.1},{Channel:"Forum",mentions:5,pct:0.0}],
-  "2026-05":[{Channel:"Facebook",mentions:18100,pct:50.2},{Channel:"Tiktok",mentions:17698,pct:49.1},{Channel:"Youtube",mentions:132,pct:0.4},{Channel:"News",mentions:44,pct:0.1},{Channel:"Threads",mentions:42,pct:0.1},{Channel:"Instagram",mentions:27,pct:0.1},{Channel:"Forum",mentions:2,pct:0.0}]
-};
-const TOPICS=[
-  {Labels1:"Trải nghiệm mua sắm & cửa hàng",mentions:22735,positive:5480,negative:42,neutral:17213,pct:30.1},
-  {Labels1:"Hình ảnh & truyền thông thương hiệu",mentions:16769,positive:4010,negative:39,neutral:12720,pct:22.2},
-  {Labels1:"So sánh thương hiệu",mentions:14659,positive:3516,negative:12,neutral:11131,pct:19.4},
-  {Labels1:"Chất lượng sản phẩm & Thiết kế",mentions:8248,positive:2118,negative:27,neutral:6103,pct:10.9},
-  {Labels1:"Dịch vụ khách hàng",mentions:3063,positive:702,negative:4,neutral:2357,pct:4.1},
-  {Labels1:"Giao hàng & tiện ích",mentions:2851,positive:652,negative:1,neutral:2198,pct:3.8},
-  {Labels1:"Chiến dịch tiếp thị",mentions:2428,positive:598,negative:1,neutral:1829,pct:3.2},
-  {Labels1:"Giá cả & khuyến mãi",mentions:1600,positive:389,negative:2,neutral:1209,pct:2.1},
-  {Labels1:"Khác",mentions:1276,positive:310,negative:3,neutral:963,pct:1.7},
-  {Labels1:"Nguồn gốc & xuất xứ sản phẩm",mentions:616,positive:149,negative:1,neutral:466,pct:0.8},
-  {Labels1:"Vận hành & Hệ thống",mentions:626,positive:152,negative:1,neutral:473,pct:0.8},
-  {Labels1:"Phản hồi của khách hàng",mentions:601,positive:144,negative:1,neutral:456,pct:0.8},
-  {Labels1:"Tuyển dụng",mentions:114,positive:20,negative:0,neutral:94,pct:0.2}
-];
-const TOPICS_BY_MONTH={
-  "2026-04":[{Labels1:"Trải nghiệm mua sắm & cửa hàng",mentions:11930,positive:2850,negative:25,neutral:9055,pct:30.2},{Labels1:"Hình ảnh & truyền thông thương hiệu",mentions:8712,positive:2080,negative:23,neutral:6609,pct:22.0},{Labels1:"So sánh thương hiệu",mentions:7672,positive:1836,negative:8,neutral:5828,pct:19.4},{Labels1:"Chất lượng sản phẩm & Thiết kế",mentions:4280,positive:1099,negative:18,neutral:3163,pct:10.8},{Labels1:"Dịch vụ khách hàng",mentions:1612,positive:369,negative:3,neutral:1240,pct:4.1},{Labels1:"Giao hàng & tiện ích",mentions:1490,positive:341,negative:1,neutral:1148,pct:3.8},{Labels1:"Chiến dịch tiếp thị",mentions:1268,positive:312,negative:1,neutral:955,pct:3.2},{Labels1:"Giá cả & khuyến mãi",mentions:836,positive:203,negative:2,neutral:631,pct:2.1},{Labels1:"Khác",mentions:670,positive:162,negative:2,neutral:506,pct:1.7},{Labels1:"Vận hành & Hệ thống",mentions:324,positive:78,negative:1,neutral:245,pct:0.8},{Labels1:"Nguồn gốc & xuất xứ sản phẩm",mentions:324,positive:78,negative:1,neutral:245,pct:0.8},{Labels1:"Phản hồi của khách hàng",mentions:311,positive:74,negative:0,neutral:237,pct:0.8},{Labels1:"Tuyển dụng",mentions:112,positive:20,negative:0,neutral:92,pct:0.3}],
-  "2026-05":[{Labels1:"Trải nghiệm mua sắm & cửa hàng",mentions:10805,positive:2630,negative:17,neutral:8158,pct:30.0},{Labels1:"Hình ảnh & truyền thông thương hiệu",mentions:8057,positive:1930,negative:16,neutral:6111,pct:22.4},{Labels1:"So sánh thương hiệu",mentions:6987,positive:1680,negative:4,neutral:5303,pct:19.4},{Labels1:"Chất lượng sản phẩm & Thiết kế",mentions:3968,positive:1019,negative:9,neutral:2940,pct:11.0},{Labels1:"Dịch vụ khách hàng",mentions:1451,positive:333,negative:1,neutral:1117,pct:4.0},{Labels1:"Giao hàng & tiện ích",mentions:1361,positive:311,negative:0,neutral:1050,pct:3.8},{Labels1:"Chiến dịch tiếp thị",mentions:1160,positive:286,negative:0,neutral:874,pct:3.2},{Labels1:"Giá cả & khuyến mãi",mentions:764,positive:186,negative:0,neutral:578,pct:2.1},{Labels1:"Khác",mentions:606,positive:148,negative:1,neutral:457,pct:1.7},{Labels1:"Vận hành & Hệ thống",mentions:302,positive:74,negative:0,neutral:228,pct:0.8},{Labels1:"Nguồn gốc & xuất xứ sản phẩm",mentions:292,positive:71,negative:0,neutral:221,pct:0.8},{Labels1:"Phản hồi của khách hàng",mentions:290,positive:70,negative:1,neutral:219,pct:0.8},{Labels1:"Tuyển dụng",mentions:2,positive:0,negative:0,neutral:2,pct:0.0}]
-};
-const SENT_CH=[
-  {Channel:"Facebook",Sentiment:"Negative",count:19},{Channel:"Facebook",Sentiment:"Neutral",count:20934},{Channel:"Facebook",Sentiment:"Positive",count:16386},
-  {Channel:"Tiktok",Sentiment:"Negative",count:115},{Channel:"Tiktok",Sentiment:"Neutral",count:28126},{Channel:"Tiktok",Sentiment:"Positive",count:9358},
-  {Channel:"Youtube",Sentiment:"Neutral",count:280},{Channel:"Youtube",Sentiment:"Positive",count:49},
-  {Channel:"News",Sentiment:"Neutral",count:112},{Channel:"News",Sentiment:"Positive",count:22},
-  {Channel:"Threads",Sentiment:"Neutral",count:86},{Channel:"Threads",Sentiment:"Positive",count:36},
-  {Channel:"Instagram",Sentiment:"Neutral",count:28},{Channel:"Instagram",Sentiment:"Positive",count:28}
-];
-const KEY_EVENTS=[
-  {date:"2026-05-14",channel:"Facebook",author:"Ngọc Linh",content:"Son Romand màu 19 + Gel rửa mặt Hada Labo SVR: Combo skincare được cộng đồng chia sẻ nhiều nhất tuần — nhiều review 5 sao về độ dịu nhẹ và không gây kích ứng.",sentiment:"Positive",reactions:4997,shares:312,comments:201,label:"Giao hàng & tiện ích"},
-  {date:"2026-05-11",channel:"Facebook",author:"Beauty Review VN",content:"Nếu các chị đang tìm serum trị mụn hiệu quả giá mềm thì mình recommend Hada Labo — đã test 30 ngày, kết quả rõ ràng. Review chi tiết link bio 💙",sentiment:"Positive",reactions:4996,shares:445,comments:287,label:"Nguồn gốc & xuất xứ sản phẩm"},
-  {date:"2026-04-27",channel:"Facebook",author:"Hasaki Official",content:"TÓC SUÔN MƯỢT CHUẨN SALON – Mua combo Hada Labo tặng kèm sản phẩm chăm sóc tóc. Offer giới hạn trong tuần, nhiều khách hàng check-in và chia sẻ trải nghiệm.",sentiment:"Positive",reactions:4995,shares:398,comments:245,label:"Hình ảnh & truyền thông thương hiệu"}
-];
-const NEG_TOPICS=[
-  {Labels1:"Trải nghiệm mua sắm & cửa hàng",mentions:42},
-  {Labels1:"Hình ảnh & truyền thông thương hiệu",mentions:39},
-  {Labels1:"Chất lượng sản phẩm & Thiết kế",mentions:27},
-  {Labels1:"So sánh thương hiệu",mentions:12},
-  {Labels1:"Dịch vụ khách hàng",mentions:4},
-  {Labels1:"Khác",mentions:3},
-  {Labels1:"Giá cả & khuyến mãi",mentions:2}
-];
-const TOP_SOURCES=[
-  {SiteName:"60giay.taichinhtieudung",mentions:186},{SiteName:"thuvienphapluat.vn",mentions:78},
-  {SiteName:"Hasaki",mentions:62},{SiteName:"hadalabo.vietnam",mentions:48},
-  {SiteName:"Hồng Trần",mentions:38},{SiteName:"leona.trainghiemdep",mentions:34},
-  {SiteName:"m.phm.rv",mentions:28},{SiteName:"MÂY Cosmetic & Kids",mentions:26},
-  {SiteName:"hangcareskinban",mentions:22},{SiteName:"Hội Thanh Lý Pass Mỹ Phẩm",mentions:20}
-];
-const TOPIC_POSTS={"Chất lượng sản phẩm & Thiết kế":{"Positive":[{date:"2026-04-17",channel:"Facebook",author:"Nhung Bé",content:"Srm SVR xanh cho da dầu mụn em sẵn — Sản phẩm chứa 4% Niacinamide cải thiện lỗ chân lông, tăng đàn hồi cho da, giảm viêm...",reactions:4990,shares:96,url:"http://facebook.com/100010704431222_2696791407354314"},{date:"2026-04-20",channel:"Facebook",author:"Thảo Thành",content:"🍀 Sữa rửa mặt SVR 🍀 — Chai 400ml. #SVR - thương hiệu dược mỹ phẩm nổi tiếng với công thức nhẹ nhàng phù hợp da nhạy cảm.",reactions:4987,shares:611,url:"http://facebook.com/100061553396314_1328246312570469"},{date:"2026-05-11",channel:"Facebook",author:"Phan Thị Trang",content:"✨ SỮA RỬA MẶT 'QUỐC DÂN' - GIÁ HẠT DẺ, CHẤT LƯỢNG CAO ✨ Tìm đâu ra một em sữa rửa mặt vừa sạch sâu, vừa mướt da mà giá lại cực hợp lý!",reactions:4983,shares:65,url:"http://facebook.com/100004465211043_3202149246610551"}],"Negative":[{date:"2026-05-13",channel:"Tiktok",author:"BĐS Em Châu",content:"Cái kem dưỡng hadalabo đỏ mình bôi xong nó xỉn da vậy nhỉ",reactions:0,shares:0,url:"https://www.tiktok.com/@mai.trinh.h/video/7602679543224192264"},{date:"2026-05-09",channel:"Facebook",author:"Góc của Nàng",content:"TỔNG HỢP REVIEW 18 LOẠI TẨY TRANG PHỔ BIẾN: ĐẮT CHƯA CHẮC ĐÃ NGON, RẺ CHƯA CHẮC ĐÃ TỆ! — Hada Labo bị xếp hạng dưới trung bình trong một số tiêu chí làm sạch.",reactions:0,shares:0,url:"http://facebook.com/1080456141820536_122099702852482892"}],"Neutral":[{date:"2026-05-14",channel:"Tiktok",author:"ni",content:"êm lắm🥰",reactions:0,shares:0,url:"https://www.tiktok.com/@dgtmyngan/video/7602137243171474695"},{date:"2026-05-14",channel:"Tiktok",author:"Thảo review",content:"🥰🥰🥰 — Chia sẻ về việc sử dụng sản phẩm Hada Labo hàng ngày",reactions:0,shares:0,url:"https://www.tiktok.com/@thao.corner97/video/7638243512705813780"}]},"Hình ảnh & truyền thông thương hiệu":{"Positive":[{date:"2026-04-23",channel:"Facebook",author:"Review mọi thứ",content:"Hada Labo đang có chiến dịch truyền thông rất mạnh với nhiều KOL review sản phẩm. Nội dung lan truyền nhanh, tạo trust tốt với người tiêu dùng trẻ.",reactions:4970,shares:264,url:"http://facebook.com/421826749413367_1503266257936072"},{date:"2026-04-27",channel:"Tiktok",author:"cuvuidii",content:"Trả lời @Diệu linh về cách dùng sản phẩm làm sạch da đúng cách — Hada Labo là top recommendation trong video này #hadalabo #suaruamat #skincare",reactions:4913,shares:398,url:"https://www.tiktok.com/@cuvuidii/video/7633409079188245776"}],"Negative":[{date:"2026-05-14",channel:"Tiktok",author:"¿",content:"s t dùng SVR lên mụn v😭",reactions:0,shares:0,url:"https://www.tiktok.com/@matmoithattha/video/7638889234849402133"},{date:"2026-05-09",channel:"Tiktok",author:"banna🍌",content:"hada labo còn chê nx mẹ 💔",reactions:0,shares:0,url:"https://www.tiktok.com/@qwmnrhon9m0068/video/7562136632401382677"}],"Neutral":[{date:"2026-05-14",channel:"Tiktok",author:"N",content:"em xin bảng phục hồi",reactions:0,shares:0,url:"https://www.tiktok.com/@trinhmeow.vlogger/video/7570586668751719688"},{date:"2026-05-14",channel:"Tiktok",author:"an",content:"fl chéo ạ",reactions:0,shares:0,url:"https://www.tiktok.com/@liw6000/video/7638940158175251733"}]},"Trải nghiệm mua sắm & cửa hàng":{"Positive":[{date:"2026-04-27",channel:"Facebook",author:"Tiệm Nhà Rose",content:"TÓC SUÔN MƯỢT CHUẨN SALON – MUA 1 TẶNG 2 QUÁ HỜI! Combo Hada Labo đang được nhiều khách check-in và chia sẻ trải nghiệm tích cực tại cửa hàng.",reactions:4995,shares:243,url:"http://facebook.com/1462596517731540_1986776918646828"},{date:"2026-05-07",channel:"Facebook",author:"Nguyễn Du",content:"Nước tẩy trang Simple chính hãng — Ưu điểm: dịu nhẹ cho da, không chứa hương liệu, không paraben. Cùng mua với Hada Labo để có combo chăm sóc da hoàn hảo!",reactions:4993,shares:380,url:"http://facebook.com/923548232357035_1765247384853778"},{date:"2026-05-02",channel:"Facebook",author:"Thảo Cosmetics",content:"Top 4 sữa rửa mặt cho da dầu - mụn được tin dùng nhiều nhất ❗ Hada Labo đứng top với đánh giá cao về độ dịu nhẹ và hiệu quả làm sạch.",reactions:4987,shares:446,url:"http://facebook.com/105231361733925_1298715702403981"}],"Negative":[{date:"2026-05-14",channel:"Tiktok",author:"lotva",content:"cái hadalabo tui thấy k trắng a",reactions:0,shares:0,url:"https://www.tiktok.com/@.lovengoc/video/7639359322149063944"},{date:"2026-05-12",channel:"Tiktok",author:"Quái Vật Ba Đầu",content:"hnhu tui k hợp vs simple hay sao í sài mà nó cứ lên mụn mà khi đổi qua crerave thì lại ok đc vãi lun",reactions:0,shares:0,url:"https://www.tiktok.com/@mytrankieu111/video/7637773445471784212"}],"Neutral":[{date:"2026-05-14",channel:"Tiktok",author:"Fl chéo",content:"Loại này okie nha",reactions:0,shares:0,url:"https://www.tiktok.com/@mailiuha3fy/video/7639011631623687444"},{date:"2026-05-14",channel:"Tiktok",author:"bình bé",content:"ê nha cái này dùng thích thật nhưng chỗ tôi bán giá cao lắm",reactions:0,shares:0,url:"https://www.tiktok.com/@26062002tn/video/7633097607736298772"}]},"So sánh thương hiệu":{"Positive":[{date:"2026-04-29",channel:"Facebook",author:"Gia Dụng Kim Chi",content:"Tẩy trang Simple mẫu mới chai 200ml — Dịu nhẹ, an toàn, không gây kích ứng. Được so sánh và xếp hạng cao hơn nhiều thương hiệu khác trong tầm giá.",reactions:4992,shares:566,url:"http://facebook.com/521286271324107_26489726260720086"},{date:"2026-05-02",channel:"Facebook",author:"TokyoLife",content:"Da sau khi tiếp xúc nắng lâu thường dễ nóng rát, khô căng — Hada Labo được đề cập như lựa chọn hàng đầu trong so sánh với các thương hiệu cùng phân khúc.",reactions:4991,shares:774,url:"http://facebook.com/248034665066920_122239704770272520"}],"Negative":[{date:"2026-04-30",channel:"Threads",author:"riitems",content:"Theo mình - thì simple hơi nhẹ đô, có thể đổi sang loại khác, dạo này phát hiện simple hơi dễ kích ứng với da nhạy cảm hơn trước.",reactions:0,shares:0,url:"https://www.threads.com/@riitems/post/DXuf0OOEtP1"},{date:"2026-04-28",channel:"News",author:"baomoi.com",content:"Dù đã có quyết định thu hồi từ cơ quan chức năng, nhiều mỹ phẩm vẫn được rao bán công khai trên các nền tảng thương mại điện tử.",reactions:0,shares:0,url:"https://baomoi.com/hang-loat-my-pham-bi-thu-hoi-van-song-khoe-tren-cho-mang-c55036421.epi"}],"Neutral":[{date:"2026-05-14",channel:"Facebook",author:"Janny Home Beauty",content:"Làm sạch 3in1 – da thoáng mịn mỗi ngày. So sánh Hada Labo với L'Oréal Micellar Water về khả năng làm sạch và dưỡng ẩm.",reactions:0,shares:0,url:"http://facebook.com/1086013517931083_122102928279304611"}]},"Dịch vụ khách hàng":{"Positive":[{date:"2026-05-05",channel:"Facebook",author:"Nguyễn Hải",content:"Sữa rửa mặt SVR, loại này xài ổn lắm ạ. SVR XANH – HỒNG — Dịch vụ tư vấn nhiệt tình, giao hàng nhanh, đóng gói cẩn thận. Mua tại Hada Labo official rất yên tâm.",reactions:4975,shares:55,url:"http://facebook.com/100005705018075_3273968892803246"},{date:"2026-04-25",channel:"Facebook",author:"Bùi Mỹ Tường",content:"GEL/SỮA RỬA MẶT SỈ — Hada Labo là sản phẩm 'must-have' phù hợp mọi tệp khách. Nhân viên hỗ trợ nhiệt tình, chính sách đổi trả rõ ràng.",reactions:4868,shares:767,url:"http://facebook.com/765805263291295_122137524687049955"}],"Negative":[{date:"2026-04-25",channel:"News",author:"songdongtunggiay.vn",content:"Bộ Y tế vừa ban hành quyết định phạt Công ty TNHH thương mại dịch vụ BB Việt Nam 75 triệu đồng vì thiếu hồ sơ thông tin sản phẩm mỹ phẩm.",reactions:0,shares:0,url:"https://songdongtunggiay.vn/kinh-te/thi-truong/my-pham-bi-thu-hoi-van-duoc-ban-tren-mang.html"}],"Neutral":[{date:"2026-05-14",channel:"Facebook",author:"Tit Nguyễn",content:"Em mong được may mắn 🍀",reactions:0,shares:0,url:"http://facebook.com/1298967510120245_1550507013110555"}]}};
 
-// ─── UTILS ──────────────────────────────────────
-const CH_CLR={Facebook:'#1877F2',Tiktok:'#333',Youtube:'#FF0000',Instagram:'#E4405F',Threads:'#555',News:'#F59E0B',Forum:'#8B5CF6'};
-const TOPIC_CLR=['#1565C0','#1E88E5','#42A5F5','#26A69A','#66BB6A','#FFA726','#AB47BC','#EF5350','#78909C','#8D6E63','#29B6F6','#D4E157','#FF7043'];
-let curMonth='overall', charts={}, curModalTopic='', curModalSent='Positive';
-
-function fmt(n){if(!n&&n!==0)return'—';if(n>=1000000)return(n/1e6).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return n.toLocaleString('vi-VN')}
-function pct(a,b){if(!a)return null;return((b-a)/a*100).toFixed(1)}
-function deltaHtml(p){if(p===null)return'';const cl=p>0?'up':p<0?'down':'flat',a=p>0?'▲':p<0?'▼':'—';return`<div class="m-delta ${cl}">${a} ${Math.abs(p)}% vs tháng trước</div>`}
-function destChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
-
-// Glassy gradient helper
-function glassGrad(ctx, color, alpha1=0.85, alpha2=0.6){
-  const g=ctx.createLinearGradient(0,0,0,ctx.canvas.height);
-  g.addColorStop(0,color.replace(')',`,${alpha1})`).replace('rgb','rgba'));
-  g.addColorStop(1,color.replace(')',`,${alpha2})`).replace('rgb','rgba'));
-  return g;
-}
-function hexToRgb(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgb(${r},${g},${b})`}
-function glassBar(ctx, hex, dir='v'){
-  const g = dir==='v'
-    ? ctx.createLinearGradient(0,0,0,ctx.canvas.height)
-    : ctx.createLinearGradient(0,0,ctx.canvas.width,0);
-  const rgb=hexToRgb(hex);
-  g.addColorStop(0,rgb.replace('rgb','rgba').replace(')',',0.95)'));
-  g.addColorStop(0.5,rgb.replace('rgb','rgba').replace(')',',0.80)'));
-  g.addColorStop(1,rgb.replace('rgb','rgba').replace(')',',0.60)'));
-  return g;
-}
-
-// ─── MONTH DATA ──────────────────────────────────
-function getMD(m){
-  if(m==='overall'){
-    const a=OV['2026-04'],b=OV['2026-05'];
-    return{total_mentions:a.total_mentions+b.total_mentions,total_posts:a.total_posts+b.total_posts,total_comments:a.total_comments+b.total_comments,total_reactions:a.total_reactions+b.total_reactions,total_shares:a.total_shares+b.total_shares,total_interactions:a.total_interactions+b.total_interactions,positive:a.positive+b.positive,negative:a.negative+b.negative,neutral:a.neutral+b.neutral,nsr:98.6,unique_authors:a.unique_authors+b.unique_authors};
-  }return OV[m];
-}
-function getCH(m){
-  if(m==='overall'){
-    const mg={};
-    ['2026-04','2026-05'].forEach(mo=>CHANNELS[mo].forEach(c=>{mg[c.Channel]=(mg[c.Channel]||0)+c.mentions}));
-    const tot=Object.values(mg).reduce((a,b)=>a+b,0);
-    return Object.entries(mg).map(([ch,mn])=>({Channel:ch,mentions:mn,pct:+(mn/tot*100).toFixed(1)})).sort((a,b)=>b.mentions-a.mentions);
-  }return CHANNELS[m].slice().sort((a,b)=>b.mentions-a.mentions);
-}
-function getTP(m){return m==='overall'?TOPICS:TOPICS_BY_MONTH[m]}
-function getDL(m){return m==='overall'?DAILY:DAILY.filter(d=>d.Date.startsWith(m==='2026-04'?'2026-04':'2026-05'))}
-
-// ─── RENDER ALL ──────────────────────────────────
-function setGlobalMonth(m){curMonth=m;renderAll()}
-function renderAll(){
-  renderSOVMetrics();renderTrend();renderKE();
-  renderChannelDonut();renderSrcTable();
-  renderTopicsDonut();renderTopicBars();renderTopicSentChart();
-  renderNegTopicDetail();renderNSR();renderSentDonut();
-  renderSentChannel();renderSentTrend();
-  renderMoMPanels();renderNegInsight();
-}
-
-// ─── SOV METRICS ─────────────────────────────────
-function renderSOVMetrics(){
-  const d=getMD(curMonth),a=OV['2026-04'],b=OV['2026-05'];
-  const isM=curMonth==='2026-05';
-  const ms=[
-    {label:'Tổng Đề Cập',value:fmt(d.total_mentions),tip:'tổng số cuộc thảo luận cho thấy mức độ thương hiệu được nhắc đến trên mạng xã hội. bao gồm bài viết, bình luận và chia sẻ.',delta:isM?pct(a.total_mentions,b.total_mentions):null},
-    {label:'Tổng Bài Viết',value:fmt(d.total_posts),tip:'bài viết gốc (topics) được tạo bởi người dùng hoặc trang đề cập hada labo. không tính bình luận.',delta:isM?pct(a.total_posts,b.total_posts):null},
-    {label:'Tổng Bình Luận',value:fmt(d.total_comments),tip:'bình luận của người dùng trên các bài viết đề cập hada labo. lượng bình luận cao cho thấy cuộc trò chuyện đang sôi nổi.',delta:isM?pct(a.total_comments,b.total_comments):null},
-    {label:'Tổng Reactions',value:fmt(d.total_reactions),tip:'tổng reactions (thích, yêu thích, haha, wow, buồn, tức giận) trên các bài viết đề cập hada labo. chỉ số tương tác cảm xúc.',delta:isM?pct(a.total_reactions,b.total_reactions):null},
-    {label:'Tổng Chia Sẻ',value:fmt(d.total_shares),tip:'số lần bài viết đề cập hada labo được chia sẻ. chia sẻ cho thấy khả năng lan truyền và khuếch đại tự nhiên của nội dung.',delta:isM?pct(a.total_shares,b.total_shares):null},
-    {label:'Tổng Tương Tác',value:fmt(d.total_interactions),tip:'tổng tương tác = bài viết + reactions + chia sẻ + bình luận. đo lường tổng khối lượng tương tác từ nội dung liên quan đến hada labo.',delta:isM?pct(a.total_interactions,b.total_interactions):null,hl:true}
-  ];
-  document.getElementById('sov-metrics').innerHTML=ms.map(m=>`
-    <div class="metric-tile ${m.hl?'hl':''}">
-      <div class="m-label">${m.label}<span class="tip">?<span class="tip-txt">${m.tip}</span></span></div>
-      <div class="m-value">${m.value}</div>
-      ${m.delta!==null?deltaHtml(m.delta):'<div style="height:18px"></div>'}
-    </div>`).join('');
-}
-
-// ─── TRENDLINE ───────────────────────────────────
-function renderTrend(){
-  destChart('trendlineChart');
-  const dl=getDL(curMonth);
-  const labels=dl.map(d=>d.Date.slice(5));
-  const vals=dl.map(d=>d.mentions);
-  const maxV=Math.max(...vals), maxI=vals.indexOf(maxV);
-
-  const evDates=KEY_EVENTS.map(e=>e.date.slice(5));
-  const evIdxs=evDates.map(ed=>labels.indexOf(ed)).filter(i=>i>=0);
-
-  const pRadius=vals.map((_,i)=>i===maxI?9:evIdxs.includes(i)?6:2);
-  const pBg=vals.map((_,i)=>i===maxI?'#FFB300':evIdxs.includes(i)?'#C62828':'#1565C0');
-  const pBorder=vals.map((_,i)=>i===maxI?'#E65100':evIdxs.includes(i)?'white':'#1565C0');
-  const pBW=vals.map((_,i)=>i===maxI?2.5:evIdxs.includes(i)?2:1);
-  const pStyle=vals.map((_,i)=>i===maxI?'triangle':'circle');
-
-  const ctx=document.getElementById('trendlineChart').getContext('2d');
-  // Gradient fills the full canvas height so there's no dead space below
-  const canH=ctx.canvas.parentElement.clientHeight||220;
-  const grad=ctx.createLinearGradient(0,0,0,canH);
-  grad.addColorStop(0,'rgba(21,101,192,0.22)');
-  grad.addColorStop(0.75,'rgba(21,101,192,0.06)');
-  grad.addColorStop(1,'rgba(21,101,192,0)');
-
-  // Custom plugin: draw inline labels next to peak + key event points
-  const inlineLabelPlugin={
-    id:'inlineLabels',
-    afterDatasetsDraw(chart){
-      const{ctx:c,data,scales:{x,y}}=chart;
-      data.datasets[0].data.forEach((v,i)=>{
-        const isPeak=i===maxI, isEv=evIdxs.includes(i);
-        if(!isPeak&&!isEv)return;
-        const px=x.getPixelForValue(i), py=y.getPixelForValue(v);
-        const txt=isPeak?`Peak · ${fmt(v)}`:`${fmt(v)}`;
-        const txtColor=isPeak?'#E65100':'#C62828';
-        const bgColor=isPeak?'rgba(255,243,224,.92)':'rgba(255,235,238,.92)';
-        c.save();
-        c.font=`600 10px Inter,-apple-system,sans-serif`;
-        const w=c.measureText(txt).width;
-        // Position: try above, flip below if near top
-        const pad=5, bpad=3;
-        const bx=px-w/2-bpad, bw=w+bpad*2, bh=16;
-        const above=py-22; const below=py+14;
-        const by=above>8?above:below;
-        // Background pill
-        c.beginPath();
-        c.roundRect(bx,by,bw,bh,4);
-        c.fillStyle=bgColor;
-        c.fill();
-        c.strokeStyle=txtColor;
-        c.lineWidth=0.8;
-        c.stroke();
-        // Text
-        c.fillStyle=txtColor;
-        c.textAlign='center';
-        c.textBaseline='middle';
-        c.fillText(txt,px,by+bh/2);
-        c.restore();
-      });
-    }
-  };
-
-  charts.trendlineChart=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[{
-      label:'Mentions',data:vals,
-      borderColor:'#1565C0',backgroundColor:grad,
-      borderWidth:2,fill:true,tension:0.38,
-      pointRadius:pRadius,pointBackgroundColor:pBg,
-      pointBorderColor:pBorder,pointBorderWidth:pBW,
-      pointStyle:pStyle,
-      pointHoverRadius:pRadius.map(r=>r+3),
-      pointHoverBorderWidth:2,
-      pointHoverBackgroundColor:pBg,
-      pointHoverBorderColor:pBorder
-    }]},
-    plugins:[inlineLabelPlugin],
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      animation:{duration:800,easing:'easeInOutQuart'},
-      layout:{padding:{top:28,right:8,bottom:4,left:4}},
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'rgba(28,32,51,.92)',
-          titleColor:'rgba(255,255,255,.85)',
-          bodyColor:'white',
-          padding:9,
-          cornerRadius:6,
-          callbacks:{
-            title:c=>{
-              const i=c[0].dataIndex;
-              if(i===maxI)return`${c[0].label}  —  Peak`;
-              if(evIdxs.includes(i))return`${c[0].label}  —  Key Event`;
-              return c[0].label;
-            },
-            label:c=>` ${c.raw.toLocaleString('vi-VN')} mentions`
-          }
-        }
-      },
-      scales:{
-        x:{
-          grid:{display:false},
-          border:{display:false},
-          ticks:{font:{size:9},maxTicksLimit:10,color:'#8E97AB'}
-        },
-        y:{
-          grid:{color:'rgba(0,0,0,0.04)',drawBorder:false},
-          border:{display:false},
-          ticks:{font:{size:9},callback:v=>fmt(v),color:'#8E97AB'},
-          // Start axis close to data min so chart fills height
-          grace:'5%'
-        }
-      }
-    }
+function setLang(lang){
+  currentLang=lang;
+  document.getElementById('btn-vi').classList.toggle('active',lang==='vi');
+  document.getElementById('btn-en').classList.toggle('active',lang==='en');
+  document.querySelectorAll('[data-vi]').forEach(el=>{
+    const txt = lang==='vi' ? el.getAttribute('data-vi') : el.getAttribute('data-en');
+    if(txt!==null) el.textContent = txt;
   });
-}
-
-// ─── KEY EVENTS ──────────────────────────────────
-function renderKE(){
-  document.getElementById('ke-list').innerHTML=KEY_EVENTS.slice(0,3).map(e=>`
-    <div class="ke-item ${e.sentiment==='Negative'?'neg-ev':''}">
-      <div class="ke-meta">
-        <div class="ke-date">${e.date}</div>
-        <div class="ke-ch">${e.channel}</div>
-        <div style="margin-top:4px"><span class="badge ${e.sentiment==='Positive'?'pos':e.sentiment==='Negative'?'neg':'neu'}"><span class="bdot"></span>${e.sentiment==='Positive'?'Tích cực':e.sentiment==='Negative'?'Tiêu cực':'Trung tính'}</span></div>
-      </div>
-      <div>
-        <div class="ke-txt">${e.content.slice(0,120)}${e.content.length>120?'…':''}</div>
-        <div class="ke-stats">
-          <span class="ke-stat">❤️ ${e.reactions.toLocaleString('vi-VN')}</span>
-          <span class="ke-stat">↗️ ${e.shares.toLocaleString('vi-VN')}</span>
-          <span class="ke-stat">💬 ${e.comments.toLocaleString('vi-VN')}</span>
-        </div>
-        <div style="margin-top:4px"><span class="badge neu">${e.label}</span></div>
-      </div>
-    </div>`).join('');
-}
-
-// ─── CHANNEL DONUT ───────────────────────────────
-function renderChannelDonut(){
-  destChart('channelDonut');
-  const ch=getCH(curMonth).filter(c=>c.mentions>0);
-  const tot=ch.reduce((s,c)=>s+c.mentions,0);
-  document.getElementById('donut-total').textContent=fmt(tot);
-  document.getElementById('channel-legend').innerHTML=ch.map(c=>`
-    <div class="leg-item"><div class="leg-dot" style="background:${CH_CLR[c.Channel]||'#999'}"></div><span>${c.Channel} (${c.pct}%)</span></div>`).join('');
-  document.getElementById('channel-bars').innerHTML=ch.map(c=>`
-    <div class="bar-item">
-      <div class="bar-hdr"><span class="bar-name">${c.Channel}</span><span class="bar-cnt">${fmt(c.mentions)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${c.pct}%;background:${CH_CLR[c.Channel]||'#1565C0'}"></div></div>
-    </div>`).join('');
-
-  const ctx=document.getElementById('channelDonut').getContext('2d');
-  // Glassy donut segments with shadow
-  charts.channelDonut=new Chart(ctx,{
-    type:'doughnut',
-    data:{labels:ch.map(c=>c.Channel),datasets:[{data:ch.map(c=>c.mentions),backgroundColor:ch.map(c=>CH_CLR[c.Channel]||'#999'),
-      borderWidth:3,borderColor:'white',hoverOffset:8,hoverBorderWidth:3}]},
-    options:{responsive:false,animation:{duration:900,easing:'easeInOutQuart'},cutout:'65%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw.toLocaleString('vi-VN')} (${(c.raw/tot*100).toFixed(1)}%)`}}}}
-  });
-}
-
-// ─── SOURCE TABLE ────────────────────────────────
-function renderSrcTable(){
-  const s=TOP_SOURCES.slice(0,10),mx=s[0].mentions;
-  document.getElementById('source-wrap').innerHTML='<table class="src-tbl" id="source-table"></table>'; document.getElementById('source-table').innerHTML=`
-    <thead><tr><th>#</th><th>Nguồn</th><th>Đề cập</th><th>Khối lượng</th></tr></thead>
-    <tbody>${s.map((r,i)=>`<tr><td><span class="rnk ${i<3?'t3':''}">${i+1}</span></td><td style="font-weight:500">${r.SiteName}</td><td>${r.mentions.toLocaleString('vi-VN')}</td><td><span class="bar-inline" style="width:${Math.round(r.mentions/mx*100)}px"></span></td></tr>`).join('')}</tbody>`;
-}
-
-// ─── TOPICS DONUT ────────────────────────────────
-function renderTopicsDonut(){
-  destChart('topicsDonut');
-  const tp=getTP(curMonth).slice(0,8);
-  const tot=tp.reduce((s,t)=>s+t.mentions,0);
-  charts.topicsDonut=new Chart(document.getElementById('topicsDonut').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:tp.map(t=>t.Labels1),datasets:[{data:tp.map(t=>t.mentions),
-      backgroundColor:TOPIC_CLR.slice(0,tp.length),borderWidth:3,borderColor:'white',hoverOffset:10}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},cutout:'50%',
-      plugins:{
-        legend:{position:'right',labels:{font:{size:10},boxWidth:12,padding:8,
-          generateLabels:chart=>chart.data.labels.map((l,i)=>({text:(l.length>26?l.slice(0,24)+'…':l),fillStyle:chart.data.datasets[0].backgroundColor[i],index:i}))}},
-        tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw.toLocaleString('vi-VN')} (${(c.raw/tot*100).toFixed(1)}%)`}},
-        // Show % on chart slices via datalabels would need plugin - use afterDraw instead
-      },
-      onClick:(e,els)=>{if(els.length>0){const t=tp[els[0].index];openModal(t.Labels1)}}
-    }
-  });
-  // Draw pct labels on slices
-  Chart.register({id:'topicPctLabels',afterDatasetsDraw(chart){
-    if(chart.canvas.id!=='topicsDonut')return;
-    const{ctx,data}=chart;
-    chart.getDatasetMeta(0).data.forEach((arc,i)=>{
-      const pctV=(data.datasets[0].data[i]/tot*100);
-      if(pctV<2)return;
-      const angle=arc.startAngle+(arc.endAngle-arc.startAngle)/2;
-      const r=(arc.innerRadius+arc.outerRadius)/2;
-      const x=arc.x+r*Math.cos(angle),y=arc.y+r*Math.sin(angle);
-      ctx.save();ctx.fillStyle='white';ctx.font='bold 10px Inter';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.shadowColor='rgba(0,0,0,0.4)';ctx.shadowBlur=3;
-      ctx.fillText(pctV.toFixed(1)+'%',x,y);ctx.restore();
+  // update driver chart labels + tooltip language
+  if(driverChartInstance){
+    driverChartInstance.data.labels = topicLabels.map(t=>{
+      const label = lang==='vi' ? t.vi : t.en;
+      return label.length>18 ? label.slice(0,18)+'…' : label;
     });
-  }});
+    driverChartInstance.update();
+  }
 }
 
-// ─── TOPIC BARS ──────────────────────────────────
-function renderTopicBars(){
-  const tp=getTP(curMonth),mx=tp[0].mentions;
-  document.getElementById('topic-bars').innerHTML=tp.map((t,i)=>`
-    <div class="bar-item" style="cursor:pointer" onclick="openModal('${t.Labels1.replace(/'/g,"\\'")}')">
-      <div class="bar-hdr">
-        <span class="bar-name">${t.Labels1}</span>
-        <span class="bar-cnt">${fmt(t.mentions)} <span style="color:var(--tm);font-weight:400">(${t.pct}%)</span></span>
-      </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(t.mentions/mx*100).toFixed(1)}%;background:${TOPIC_CLR[i]||'#1565C0'}"></div></div>
-    </div>`).join('');
-}
+function sw(dim,btn){document.querySelectorAll('.dim-sec').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.dim-btn').forEach(b=>b.classList.remove('active'));document.getElementById('d-'+dim).classList.add('active');btn.classList.add('active');}
 
-// ─── TOPIC SENTIMENT CHART (no grid lines) ───────
-function renderTopicSentChart(){
-  destChart('topicSentimentChart');
-  const tp=getTP(curMonth).slice(0,10);
-  const labels=tp.map(t=>t.Labels1.length>26?t.Labels1.slice(0,24)+'…':t.Labels1);
-  const ctx=document.getElementById('topicSentimentChart').getContext('2d');
-  charts.topicSentimentChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels,datasets:[
-      {label:'Tích cực',data:tp.map(t=>t.positive),backgroundColor:tp.map(()=>glassBar(ctx,'#2E7D32','h')),stack:'s',borderRadius:3,borderSkipped:false},
-      {label:'Trung tính',data:tp.map(t=>t.neutral),backgroundColor:tp.map(()=>glassBar(ctx,'#9E9E9E','h')),stack:'s',borderRadius:0,borderSkipped:false},
-      {label:'Tiêu cực',data:tp.map(t=>t.negative),backgroundColor:tp.map(()=>glassBar(ctx,'#C62828','h')),stack:'s',borderRadius:3,borderSkipped:false}
-    ]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}},
-        tooltip:{mode:'index',callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toLocaleString('vi-VN')}`}}},
-      scales:{
-        x:{stacked:true,grid:{display:false},border:{display:false},ticks:{font:{size:9},callback:v=>fmt(v)}},
-        y:{stacked:true,grid:{display:false},border:{display:false},ticks:{font:{size:10}}}
-      },
-      onClick:(e,els)=>{if(els.length>0){const t=tp[els[0].index];openModal(t.Labels1)}}
-    }
-  });
-}
+const BL='#1E6BB8',BL2='#4A9DCC',BL3='#85B7EB',BL4='#B5D4F4';
+const CPOS='rgba(200,240,210,.75)',CNEU='rgba(255,243,195,.75)',CNEG='rgba(255,205,205,.75)';
+const BPOS='rgba(76,175,80,.4)',BNEU='rgba(255,193,7,.4)',BNEG='rgba(244,67,54,.4)';
+const PPOS='#2E7D32',PNEG='#C0392B',PNEU='#8B6914';
 
-// ─── NEG TOPICS INSIGHT ──────────────────────────
-function renderNegInsight(){
-  document.getElementById('neg-topics-content').innerHTML=NEG_TOPICS.slice(0,3).map(t=>`
-    <div class="ins-item"><span class="ins-bullet warn"></span>
-    <span><b>${t.Labels1}</b> — ${t.mentions} lượt phản hồi tiêu cực. Nên rà soát nội dung và kiểm tra các bình luận lặp lại để xác định nguyên nhân cụ thể.</span></div>`).join('');
-}
+const tL=['15/4','16/4','17/4','18/4','19/4','20/4','21/4','22/4','23/4','24/4','25/4','26/4','27/4','28/4','29/4','30/4','1/5','2/5','3/5','4/5','5/5','6/5','7/5','8/5','9/5','10/5','11/5','12/5','13/5','14/5'];
+const tD=[1058,1134,1276,1348,1420,1389,1298,1267,1189,1234,1356,1423,1512,1598,1467,3925,2450,2109,2482,2522,3385,2405,2222,2031,2044,2347,2025,3093,3826,3104];
+const peakIdx=[15,20,28],peakCols=['#1E6BB8','#4A9DCC','#F57C00'];
+const ptC=tD.map((_,i)=>{const pi=peakIdx.indexOf(i);return pi>=0?peakCols[pi]:'transparent';});
+const ptS=tD.map((_,i)=>peakIdx.includes(i)?6:0);
+new Chart(document.getElementById('trendC'),{type:'line',data:{labels:tL,datasets:[{data:tD,borderColor:BL,backgroundColor:BL+'18',borderWidth:1.5,pointRadius:ptS,pointBackgroundColor:ptC,pointBorderColor:ptC,tension:.4,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>t[0].label,label:c=>' '+c.raw.toLocaleString()+' mentions'}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:10},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v},grid:{color:'rgba(30,107,184,.06)'}}}}});
 
-// ─── NEG TOPIC DETAIL ────────────────────────────
-function renderNegTopicDetail(){
-  const mx=NEG_TOPICS[0].mentions;
-  document.getElementById('neg-topic-detail').innerHTML=NEG_TOPICS.map((t,i)=>`
-    <div class="bar-item" style="cursor:pointer" onclick="openModal('${t.Labels1.replace(/'/g,"\\'")}')">
-      <div class="bar-hdr">
-        <span class="bar-name" style="color:${i<3?'var(--neg)':'var(--t1)'};font-weight:${i<3?600:400}">${t.Labels1}</span>
-        <span class="bar-cnt" style="color:var(--neg)">${t.mentions} tiêu cực</span>
-      </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${(t.mentions/mx*100).toFixed(0)}%;background:#C62828"></div></div>
-    </div>`).join('');
-}
+const channels=[
+  {name:'TikTok',pct:49.7,bar:BL,icon:'<svg width="13" height="13" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.95a8.16 8.16 0 004.77 1.52V7.02a4.85 4.85 0 01-1-.33z" fill="#010101"/></svg>'},
+  {name:'Facebook',pct:49.4,bar:'#1877F2',icon:'<svg width="13" height="13" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/></svg>'},
+  {name:'YouTube',pct:0.4,bar:'#FF0000',icon:'<svg width="13" height="13" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000"/></svg>'},
+  {name:'News',pct:0.18,bar:'#555',icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2M9 11h6M9 15h6M9 7h2"/></svg>'},
+  {name:'Threads',pct:0.16,bar:'#000',icon:'<svg width="13" height="13" viewBox="0 0 192 192" fill="#000"><path d="M141.537 88.988a66.667 66.667 0 00-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.986 0-27.449 6.396-35.12 18.036l13.779 9.452c5.73-8.695 14.724-10.548 21.348-10.548h.232c8.248.053 14.474 2.452 18.502 7.13 2.932 3.405 4.893 8.111 5.864 14.05-7.314-1.244-15.224-1.626-23.68-1.14-23.82 1.371-39.134 15.264-38.105 34.568.522 9.792 5.4 18.216 13.735 23.719 7.047 4.652 16.124 6.927 25.557 6.412 12.458-.683 22.231-5.436 29.049-14.127 5.178-6.6 8.453-15.153 9.899-25.93 5.937 3.583 10.337 8.298 12.767 13.966 4.132 9.635 4.373 25.468-8.546 38.376-11.319 11.308-24.925 16.2-45.488 16.351-22.809-.169-40.06-7.484-51.275-21.742C35.236 139.966 29.808 120.682 29.605 96c.203-24.682 5.63-43.966 16.133-57.317C56.954 24.425 74.204 17.11 97.013 16.94c22.975.17 40.526 7.52 52.171 21.847 5.71 7.026 10.015 15.86 12.853 26.162l16.147-4.308c-3.44-12.68-8.853-23.606-16.219-32.668C147.036 9.607 125.202.195 97.07 0h-.113C68.882.194 47.292 9.642 32.788 28.08 19.882 44.485 13.224 67.315 13.001 95.932L13 96v.067c.224 28.617 6.882 51.447 19.788 67.854C47.292 182.358 68.882 191.806 96.957 192h.113c24.96-.173 42.554-6.708 57.048-21.189 18.963-18.944 18.392-42.691 12.142-57.27-4.484-10.454-13.033-18.945-24.723-24.553zM98.44 129.507c-10.44.588-21.286-4.098-21.82-14.135-.397-7.442 5.296-15.746 22.461-16.735 1.966-.113 3.895-.169 5.79-.169 6.235 0 12.068.606 17.371 1.765-1.978 24.702-13.58 28.713-23.802 29.274z"/></svg>'},
+  {name:'Instagram',pct:0.07,bar:'#E1306C',icon:'<svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" fill="#E1306C"/></svg>'}
+];
+document.getElementById('chRows').innerHTML=channels.map(c=>{const w=Math.max(2,Math.round(c.pct/49.7*100));return`<div class="ch-row"><div class="ch-ic">${c.icon}</div><span style="width:65px;flex-shrink:0;color:#1E3A5F;font-size:11px;">${c.name}</span><div class="ch-bw"><div class="ch-bf" style="width:${w}%;background:${c.bar};"></div></div><span style="font-size:11px;font-weight:500;color:#1E3A5F;width:34px;text-align:right;">${c.pct}%</span></div>`;}).join('');
 
-// ─── NSR ─────────────────────────────────────────
-function renderNSR(){
-  const a=OV['2026-04'],b=OV['2026-05'];
-  document.getElementById('nsr-panel').innerHTML=`
-    <div style="display:flex;gap:20px;align-items:center;justify-content:space-around;padding:10px 0">
-      <div style="text-align:center">
-        <div style="font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;margin-bottom:6px">Tháng trước</div>
-        <div class="nsr-num" style="font-size:28px">${a.nsr}%</div>
-        <div class="nsr-lbl">NSR</div>
-        <span class="badge pos" style="margin-top:6px"><span class="bdot"></span>Tích cực</span>
-      </div>
-      <div style="font-size:22px;color:var(--bdr)">→</div>
-      <div style="text-align:center">
-        <div style="font-size:10px;font-weight:700;color:var(--hl-blue);text-transform:uppercase;margin-bottom:6px">Tháng hiện tại</div>
-        <div class="nsr-num" style="font-size:32px">${b.nsr}%</div>
-        <div class="nsr-lbl">NSR</div>
-        <span class="badge pos" style="margin-top:6px"><span class="bdot"></span>Tích cực</span>
-      </div>
+const srcs=[{n:'HannahOlala',v:6488},{n:'lorealparis_vn',v:3492},{n:'rinabeauty859',v:1959},{n:"L'Oréal Paris",v:1243},{n:'linhnhirv.68',v:951},{n:'Hada Labo (Official)',v:813},{n:'Pharmacity',v:795},{n:'Laboratoire SVR',v:711},{n:'m.phm.rv',v:628},{n:'Senka Vietnam',v:551}];
+document.getElementById('srcRows').innerHTML=srcs.map((s,i)=>{const w=Math.round(s.v/6488*100),hl=s.n.includes('Hada Labo');return`<div class="src-row"><span style="width:18px;color:#5a7a99;font-size:10px;flex-shrink:0;">${i+1}.</span><span style="flex:1;color:${hl?BL:'#1E3A5F'};font-weight:${hl?'500':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;">${s.n}${hl?' ★':''}</span><div style="width:130px;height:6px;background:#EBF4FB;border-radius:3px;overflow:hidden;margin:0 8px;flex-shrink:0;"><div style="width:${w}%;height:100%;background:${hl?PPOS:BL};border-radius:3px;"></div></div><span style="font-size:11px;font-weight:500;color:#1E3A5F;width:40px;text-align:right;">${s.v.toLocaleString()}</span></div>`;}).join('');
+
+const topics=[
+  {n:{vi:'Trải nghiệm mua sắm',en:'Shopping Experience'},t:22735,p:8647,ne:14046,ng:42,pct:30.1,
+   posts:{pos:['@Phanh Tran (FB, 30/4): "5 MÀU 5 DÒNG Hada Labo — CHỌN ĐÚNG LÀ DA ĐẸP NGAY"','@Mẹ Bỉm Sữa (FB, 5/5): "Những thứ nhất định chị em không thể thiếu"','@Pharmacity (FB, 12/5): khuyến mãi Hada Labo tháng 5'],
+    neu:['@shopee_official: sản phẩm Hada Labo trending category','@lazada_vn: Hada Labo trong top search beauty','@chuoisi_bachhoaxanh: Hada Labo có mặt trong hệ thống'],
+    neg:['phàn nàn về hàng giả/hàng nhái tại một số cửa hàng không chính hãng','feedback về giá tăng so với tháng trước tại kênh offline','khó mua được size lớn tại một số tỉnh thành ngoài HN/HCM']}},
+  {n:{vi:'Hình ảnh thương hiệu',en:'Brand Image'},t:16769,p:1609,ne:15121,ng:39,pct:22.2,
+   posts:{pos:['@rinabeauty859 (TikTok): review tích cực về brand positioning của Hada Labo','@linhnhirv.68 (TikTok): "thương hiệu Nhật đáng tin"','@HannahOlala (FB): nhắc Hada Labo trong context dưỡng ẩm tier cao'],
+    neu:['@lorealparis_vn: mention Hada Labo trong bài so sánh dưỡng ẩm','@beautyblogger_vn: đặt Hada Labo trong danh sách skincare tối giản','@tiki_official: Hada Labo xuất hiện trong banner quảng cáo'],
+    neg:['một số ý kiến cho rằng packaging của Hada Labo nhìn "nhàm" so với brand Hàn','feedback về communication tiếng Việt chưa đủ mạnh','so sánh brand story với các thương hiệu có heritage rõ ràng hơn']}},
+  {n:{vi:'So sánh thương hiệu',en:'Brand Comparison'},t:14659,p:3037,ne:11610,ng:12,pct:19.4,
+   posts:{pos:['@tamanhrevieww (TikTok): "Hada Labo thắng Simple về độ ẩm"','@vuibeauty102 (TikTok): xếp Hada Labo #1 trong SRM affordable','@nganguyen140498 (TikTok): Hada Labo vs CeraVe — favors Hada Labo cho da Việt Nam'],
+    neu:['thảo luận về điểm khác biệt giữa Hada Labo và Hatomugi','so sánh thành phần HA giữa các dòng Hada Labo với đối thủ','hỏi về khác biệt giữa Hada Labo xanh vs Shirojyun vs Premium'],
+    neg:['một số review cho rằng CeraVe moisturizer tốt hơn cho da khô nặng','ý kiến cho rằng Simple ít ingredient hơn phù hợp da nhạy cảm hơn','Cocoon được ưu tiên hơn trong group thuần chay']}},
+  {n:{vi:'Chất lượng sản phẩm',en:'Product Quality'},t:8248,p:2794,ne:5427,ng:27,pct:10.9,
+   posts:{pos:['@duog_20_1 (TikTok, 13/5): "Giá thành rẻ nhưng chất lượng" #hadalabo','@shopthuong2k (TikTok): kem dưỡng chống lão hóa Hada Labo đỏ','@tranggvlog (TikTok): tẩy trang Hada Labo "sạch sâu dịu nhẹ"'],
+    neu:['thảo luận về thành phần HA trong các dòng Hada Labo','hỏi về cách sử dụng đúng lotion vs serum','so sánh texture giữa Gokujyun và Shirojyun Premium'],
+    neg:['feedback về mùi hương của một số sản phẩm','ý kiến về độ nhớt của lotion dòng regular không phù hợp da dầu','một số người dùng phản ánh packaging khó bơm cuối chai']}},
+  {n:{vi:'Dịch vụ khách hàng',en:'Customer Service'},t:3063,p:894,ne:2165,ng:4,pct:4.1,
+   posts:{pos:['phản hồi tích cực về tư vấn tại quầy Pharmacity','feedback về chương trình đổi trả linh hoạt','staff tư vấn sản phẩm phù hợp loại da'],
+    neu:['hỏi về chính sách bảo hành sản phẩm','hỏi về điểm bán chính hãng tại các tỉnh','thắc mắc về quy trình đặt hàng online'],
+    neg:['phàn nàn về thời gian phản hồi hotline','feedback về nhân viên tư vấn thiếu kiến thức sản phẩm','phàn nàn về chính sách đổi trả tại một số đại lý']}},
+  {n:{vi:'Giao hàng & tiện ích',en:'Delivery & Convenience'},t:2851,p:914,ne:1936,ng:1,pct:3.8,
+   posts:{pos:['giao hàng nhanh từ Shopee Express → reviews tích cực','đóng gói an toàn, không vỡ chai → feedback tốt','free ship threshold hợp lý → mua nhiều hơn'],
+    neu:['so sánh giá ship giữa các sàn','hỏi về estimated delivery time','thảo luận về pickup tại cửa hàng vs giao hàng'],
+    neg:['một vài phàn nàn về thời gian giao hàng chậm hơn ước tính']}},
+  {n:{vi:'Khác',en:'Others'},t:6028,p:1503,ne:4464,ng:61,pct:7.0,
+   posts:{pos:['discussions tích cực về các topic nhỏ lẻ khác','mention trong context beauty routine','tag bạn bè trong posts về Hada Labo'],
+    neu:['thảo luận chung về skincare routine','hỏi về phù hợp theo mùa','mention trong context beauty haul'],
+    neg:['feedback rải rác về giá cả','ý kiến về chiến dịch tiếp thị','phàn nàn nhỏ về bao bì']}}
+];
+
+const tColors=['#1E6BB8','#3EA0D0','#6AC0A0','#E8A838','#9B6DC0','#E05858','#78B850'];
+new Chart(document.getElementById('topicPie'),{
+  type:'doughnut',
+  data:{labels:topics.map(t=>`${t.n.vi} (${t.pct}%)`),datasets:[{data:topics.map(t=>t.t),backgroundColor:tColors,borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'right',labels:{font:{size:9},boxWidth:10,padding:5}},tooltip:{callbacks:{label:c=>`${topics[c.dataIndex].n.vi}: ${c.raw.toLocaleString()} (${topics[c.dataIndex].pct}%)`}}},
+    cutout:'40%'
+  }
+});
+Chart.register({
+  id:'pieLabels',
+  afterDraw(chart){
+    if(chart.canvas.id!=='topicPie')return;
+    const {ctx}=chart;const meta=chart.getDatasetMeta(0);
+    ctx.save();
+    meta.data.forEach((arc,i)=>{
+      const pct=topics[i].pct;if(pct<3)return;
+      const angle=(arc.startAngle+arc.endAngle)/2;
+      const r=(arc.outerRadius+arc.innerRadius)/2;
+      const x=arc.x+r*Math.cos(angle);const y=arc.y+r*Math.sin(angle);
+      ctx.fillStyle='#fff';ctx.font='bold 10px Noto Sans,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(pct+'%',x,y);
+    });
+    ctx.restore();
+  }
+});
+
+new Chart(document.getElementById('sentPie'),{type:'doughnut',data:{labels:['Positive','Neutral','Negative'],datasets:[{data:[19240,56212,134],backgroundColor:[CPOS,CNEU,CNEG],borderColor:[BPOS,BNEU,BNEG],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'55%'}});
+
+const tlDiv=document.getElementById('topicLayerBars');
+topics.forEach((t,i)=>{
+  const pw=(t.p/t.t*100).toFixed(1),nw=(t.ne/t.t*100).toFixed(1),ngw=(t.ng/t.t*100).toFixed(1);
+  const ngBadge=t.ng>0?`<span class="bn" style="padding:1px 4px;font-size:9px;">Neg: ${t.ng}</span>`:'';
+  const posHtml=t.posts.pos.map(p=>`<div class="post-item">📌 ${p}</div>`).join('');
+  const neuHtml=t.posts.neu.map(p=>`<div class="post-item">📌 ${p}</div>`).join('');
+  const negHtml=(t.posts.neg||[]).map(p=>`<div class="post-item">⚠️ ${p}</div>`).join('');
+
+  tlDiv.innerHTML+=`
+  <div class="topic-clickable" onclick="toggleTopic(${i})">
+    <div class="topic-hd">
+      <span class="topic-nm" style="display:flex;align-items:center;gap:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:${tColors[i]};flex-shrink:0;display:inline-block;"></span>
+        <span data-vi="${t.n.vi}" data-en="${t.n.en}">${t.n.vi}</span>
+      </span>
+      <div style="display:flex;align-items:center;gap:6px;">${ngBadge}<span class="topic-tot">${t.t.toLocaleString()} · ${t.pct}%</span><span id="arr${i}" style="font-size:10px;color:#5a7a99;">▼</span></div>
     </div>
-    <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--pos);font-weight:600">▲ +${(b.nsr-a.nsr).toFixed(1)}pp cải thiện so với tháng trước</div>
-    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--t2);line-height:1.5">
-      <b>Công thức NSR:</b> (Tích cực − Tiêu cực) ÷ (Tích cực + Tiêu cực) × 100%. Càng gần 100% = mức độ ủng hộ thương hiệu càng cao.
-    </div>`;
+    <div class="topic-stack"><div style="width:${pw}%;background:${CPOS};"></div><div style="width:${nw}%;background:${CNEU};"></div><div style="width:${ngw}%;background:${CNEG};"></div></div>
+    <div class="topic-ft"><span class="tmini" style="color:${PPOS};">${pw}% <span data-vi="pos" data-en="pos">pos</span></span><span class="tmini" style="color:${PNEU};margin-left:6px;">${nw}% <span data-vi="neu" data-en="neu">neu</span></span><span class="tmini" style="color:${PNEG};margin-left:6px;">${ngw}% <span data-vi="neg" data-en="neg">neg</span></span></div>
+  </div>
+  <div id="td${i}" class="topic-detail">
+    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
+      <span class="bp" style="padding:2px 8px;font-size:10px;">✓ <span data-vi="Tích cực" data-en="Pos">Tích cực</span>: ${t.p.toLocaleString()}</span>
+      <span class="bne" style="padding:2px 8px;font-size:10px;">~ <span data-vi="Trung tính" data-en="Neu">Trung tính</span>: ${t.ne.toLocaleString()}</span>
+      <span class="bn" style="padding:2px 8px;font-size:10px;">✗ <span data-vi="Tiêu cực" data-en="Neg">Tiêu cực</span>: ${t.ng}</span>
+    </div>
+    <div class="sent-tabs">
+      <span class="stab pos active" onclick="showSent(event,${i},'p')"><span data-vi="Tích cực" data-en="Positive">Tích cực</span> (${t.p.toLocaleString()})</span>
+      <span class="stab neu" onclick="showSent(event,${i},'n')"><span data-vi="Trung tính" data-en="Neutral">Trung tính</span> (${t.ne.toLocaleString()})</span>
+      ${t.ng>0?`<span class="stab neg" onclick="showSent(event,${i},'g')"><span data-vi="Tiêu cực" data-en="Negative">Tiêu cực</span> (${t.ng})</span>`:''}
+    </div>
+    <div id="sp${i}" class="sent-panel active">${posHtml}</div>
+    <div id="sn${i}" class="sent-panel">${neuHtml}</div>
+    ${t.ng>0?`<div id="sg${i}" class="sent-panel">${negHtml}</div>`:''}
+  </div>`;
+});
+
+function toggleTopic(i){
+  const d=document.getElementById('td'+i);const arr=document.getElementById('arr'+i);
+  const isOpen=d.classList.contains('open');
+  document.querySelectorAll('.topic-detail').forEach(x=>x.classList.remove('open'));
+  document.querySelectorAll('[id^="arr"]').forEach(x=>x.textContent='▼');
+  if(!isOpen){d.classList.add('open');arr.textContent='▲';}
+}
+function showSent(e,i,type){
+  e.stopPropagation();
+  ['p','n','g'].forEach(t=>{const panel=document.getElementById('s'+t+i);if(panel)panel.classList.remove('active');});
+  document.querySelectorAll(`#td${i} .stab`).forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('s'+type+i);if(panel)panel.classList.add('active');
+  e.currentTarget.classList.add('active');
 }
 
-// ─── SENTIMENT DONUT ─────────────────────────────
-function renderSentDonut(){
-  destChart('sentimentDonut');
-  const d=getMD(curMonth);
-  const tot=d.positive+d.neutral+d.negative;
-  document.getElementById('sent-pct').textContent=(d.positive/tot*100).toFixed(1)+'%';
-  charts.sentimentDonut=new Chart(document.getElementById('sentimentDonut').getContext('2d'),{
-    type:'doughnut',
-    data:{labels:['Tích cực','Trung tính','Tiêu cực'],datasets:[{data:[d.positive,d.neutral,d.negative],
-      backgroundColor:['#2E7D32','#BDBDBD','#C62828'],borderWidth:3,borderColor:'white',hoverOffset:8}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},cutout:'65%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw.toLocaleString('vi-VN')} (${(c.raw/tot*100).toFixed(1)}%)`}}}}
-  });
-  document.getElementById('sentiment-legend').innerHTML=[{l:'Tích cực',c:'#2E7D32',v:d.positive},{l:'Trung tính',c:'#BDBDBD',v:d.neutral},{l:'Tiêu cực',c:'#C62828',v:d.negative}]
-    .map(s=>`<div class="leg-item"><div class="leg-dot" style="background:${s.c}"></div><span>${s.l} (${fmt(s.v)})</span></div>`).join('');
-}
+const negT=[{n:{vi:'Trải nghiệm mua sắm',en:'Shopping Experience'},c:42},{n:{vi:'Hình ảnh thương hiệu',en:'Brand Image'},c:39},{n:{vi:'Chất lượng sản phẩm',en:'Product Quality'},c:27},{n:{vi:'So sánh thương hiệu',en:'Brand Comparison'},c:12},{n:{vi:'Dịch vụ khách hàng',en:'Customer Service'},c:4},{n:{vi:'Khác',en:'Others'},c:3},{n:{vi:'Giá cả',en:'Pricing'},c:2},{n:{vi:'Chiến dịch',en:'Campaign'},c:1}];
+document.getElementById('negRows').innerHTML=negT.map(t=>{const w=Math.round(t.c/42*100);return`<div class="neg-row"><span style="flex:1;color:#1E3A5F;font-size:11px;"><span data-vi="${t.n.vi}" data-en="${t.n.en}">${t.n.vi}</span></span><div style="width:80px;height:6px;background:#FDECEA;border-radius:3px;overflow:hidden;flex-shrink:0;"><div style="width:${w}%;height:100%;background:${PNEG};border-radius:3px;"></div></div><span style="width:20px;text-align:right;font-size:11px;color:${PNEG};font-weight:500;">${t.c}</span></div>`;}).join('');
 
-// ─── SENTIMENT BY CHANNEL ────────────────────────
-function renderSentChannel(){
-  destChart('sentimentChannelChart');
-  const chs=['Facebook','Tiktok','Youtube','News','Threads'];
-  const gv=(ch,sent)=>{const r=SENT_CH.find(x=>x.Channel===ch&&x.Sentiment===sent);return r?r.count:0};
-  const ctx=document.getElementById('sentimentChannelChart').getContext('2d');
-  charts.sentimentChannelChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels:chs,datasets:[
-      {label:'Tích cực',data:chs.map(c=>gv(c,'Positive')),backgroundColor:glassBar(ctx,'#2E7D32'),stack:'s',borderRadius:3},
-      {label:'Trung tính',data:chs.map(c=>gv(c,'Neutral')),backgroundColor:glassBar(ctx,'#9E9E9E'),stack:'s'},
-      {label:'Tiêu cực',data:chs.map(c=>gv(c,'Negative')),backgroundColor:glassBar(ctx,'#C62828'),stack:'s',borderRadius:3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}},tooltip:{mode:'index',callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toLocaleString('vi-VN')}`}}},
-      scales:{x:{stacked:true,grid:{display:false},border:{display:false},ticks:{font:{size:9}}},y:{stacked:true,grid:{display:false},border:{display:false},ticks:{font:{size:9},callback:v=>fmt(v)}}}}
-  });
-}
+driverChartInstance=new Chart(document.getElementById('driverC'),{type:'bar',data:{labels:topicLabels.map(t=>t.vi.length>18?t.vi.slice(0,18)+'…':t.vi),datasets:[{data:topics.map(t=>t.t),backgroundColor:tColors,borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>currentLang==='vi'?topicLabels[t[0].dataIndex].vi:topicLabels[t[0].dataIndex].en,label:c=>' '+c.raw.toLocaleString()+' mentions'}}},scales:{x:{ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(30,107,184,.06)'}},y:{ticks:{font:{size:10}},grid:{display:false}}}}});
 
-// ─── SENTIMENT TREND ─────────────────────────────
-function renderSentTrend(){
-  destChart('sentimentTrendChart');
-  const dl=getDL(curMonth);
-  const ctx=document.getElementById('sentimentTrendChart').getContext('2d');
-  const gPos=ctx.createLinearGradient(0,0,0,200);gPos.addColorStop(0,'rgba(46,125,50,0.25)');gPos.addColorStop(1,'rgba(46,125,50,0.02)');
-  const gNeu=ctx.createLinearGradient(0,0,0,200);gNeu.addColorStop(0,'rgba(158,158,158,0.20)');gNeu.addColorStop(1,'rgba(158,158,158,0.02)');
-  const gNeg=ctx.createLinearGradient(0,0,0,200);gNeg.addColorStop(0,'rgba(198,40,40,0.25)');gNeg.addColorStop(1,'rgba(198,40,40,0.02)');
-  charts.sentimentTrendChart=new Chart(ctx,{
-    type:'line',
-    data:{labels:dl.map(d=>d.Date.slice(5)),datasets:[
-      {label:'Positive',data:dl.map(d=>d.positive),borderColor:'#2E7D32',backgroundColor:gPos,fill:true,tension:0.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#2E7D32'},
-      {label:'Neutral',data:dl.map(d=>d.neutral),borderColor:'#9E9E9E',backgroundColor:gNeu,fill:true,tension:0.4,borderWidth:1.5,pointRadius:1.5,pointBackgroundColor:'#9E9E9E'},
-      {label:'Negative',data:dl.map(d=>d.negative),borderColor:'#C62828',backgroundColor:gNeg,fill:true,tension:0.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#C62828'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}},tooltip:{mode:'index'}},
-      scales:{x:{grid:{display:false},border:{display:false},ticks:{font:{size:9},maxTicksLimit:8}},y:{grid:{display:false},border:{display:false},ticks:{font:{size:9},callback:v=>fmt(v)}}}}
-  });
-}
+new Chart(document.getElementById('sentCh'),{type:'bar',data:{labels:['TikTok','Facebook','YouTube','News','Threads'],datasets:[{label:'Positive',data:[2688,16386,59,2,77],backgroundColor:CPOS,borderColor:BPOS,borderWidth:1},{label:'Neutral',data:[34835,20934,270,96,42],backgroundColor:CNEU,borderColor:BNEU,borderWidth:1},{label:'Negative',data:[76,19,0,36,3],backgroundColor:CNEG,borderColor:BNEG,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(30,107,184,.06)'}}}}});
+function gauge(id,val,col){new Chart(document.getElementById(id),{type:'doughnut',data:{labels:['NSR','Rest'],datasets:[{data:[val,100-val],backgroundColor:[col,'rgba(30,107,184,.08)'],borderWidth:0,circumference:180,rotation:270}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},cutout:'68%'}});}
+gauge('nsrPrev',97.9,CNEU);gauge('nsrCurr',99.3,CPOS);
+new Chart(document.getElementById('genderPie'),{type:'doughnut',data:{labels:['Nữ','Nam','Khác'],datasets:[{data:[78,15,7],backgroundColor:['rgba(233,30,99,.22)','rgba(21,101,192,.22)','rgba(120,120,120,.18)'],borderColor:['rgba(233,30,99,.5)','rgba(21,101,192,.5)','rgba(120,120,120,.4)'],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'50%'}});
+new Chart(document.getElementById('agePie'),{type:'doughnut',data:{labels:['18-24','25-34','35-44','45+'],datasets:[{data:[38,35,18,9],backgroundColor:[BL,BL2,BL3,BL4],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'50%'}});
+new Chart(document.getElementById('typePie'),{type:'doughnut',data:{labels:['Posts','Comments'],datasets:[{data:[37.9,62.1],backgroundColor:[BL,BL3],borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'50%'}});
 
-// ─── MOM ─────────────────────────────────────────
-function renderMoM(){
-  const selA=document.getElementById('mom-sel-a');
-  const selB=document.getElementById('mom-sel-b');
-  if(!selA||!selB)return;
-  const mA=selA.value, mB=selB.value;
-  const labA=mA==='2026-04'?'April 2026':'May 2026';
-  const labB=mB==='2026-04'?'April 2026':'May 2026';
-  const dA=OV[mA], dB=OV[mB];
-
-  // Update headers
-  document.getElementById('mom-hdr-a').textContent=`📅 ${labA}`;
-  document.getElementById('mom-hdr-b').textContent=`📅 ${labB}`;
-
-  // Delta badge
-  const mentDelta=pct(dA.total_mentions,dB.total_mentions);
-  const badge=document.getElementById('mom-delta-badge');
-  if(mA===mB){badge.textContent='Same period';badge.style.background='var(--neu-l)';badge.style.color='var(--neu)';}
-  else{
-    const sign=mentDelta>0?'+':'';
-    badge.textContent=`Mentions: ${sign}${mentDelta}% MoM`;
-    badge.style.background=mentDelta>0?'var(--pos-l)':'var(--neg-l)';
-    badge.style.color=mentDelta>0?'var(--pos)':'var(--neg)';
-  }
-
-  // Rows
-  const rows=[
-    {label:'Total Mentions',tip:'total discussions mentioning hada labo per month',aV:dA.total_mentions,bV:dB.total_mentions},
-    {label:'Total Posts',tip:'original posts (not comments) per month',aV:dA.total_posts,bV:dB.total_posts},
-    {label:'Total Comments',tip:'comments on posts mentioning hada labo per month',aV:dA.total_comments,bV:dB.total_comments},
-    {label:'Total Reactions',tip:'reactions (like, love, etc.) on hada labo-related posts',aV:dA.total_reactions,bV:dB.total_reactions},
-    {label:'Total Shares',tip:'shares of posts mentioning hada labo per month',aV:dA.total_shares,bV:dB.total_shares},
-    {label:'Total Interactions',tip:'posts + reactions + shares + comments per month',aV:dA.total_interactions,bV:dB.total_interactions},
-    {label:'NSR',tip:'net sentiment rate = (positive - negative) / (positive + negative) × 100%',aV:dA.nsr,bV:dB.nsr,isNSR:true},
-    {label:'Positive Mentions',tip:'mentions classified as positive sentiment',aV:dA.positive,bV:dB.positive},
-    {label:'Negative Mentions',tip:'mentions classified as negative sentiment',aV:dA.negative,bV:dB.negative},
-    {label:'Unique Authors',tip:'unique accounts participating in discussions. one account may appear in multiple conversations.',aV:dA.unique_authors,bV:dB.unique_authors}
-  ];
-  const buildRows=(vals)=>rows.map(r=>{
-    const v=vals==='a'?r.aV:r.bV;
-    const other=vals==='a'?r.bV:r.aV;
-    const chg=r.isNSR||mA===mB?null:pct(r.aV,r.bV);
-    const dHtml=chg!==null?`<span style="font-size:10px;font-weight:600;color:${chg>0?'var(--pos)':chg<0?'var(--neg)':'var(--neu)'}">${chg>0?'▲':'▼'} ${Math.abs(chg)}%</span>`:'';
-    return`<div class="mom-row">
-      <div class="mom-row-lbl">${r.label}<span class="tip">?<span class="tip-txt">${r.tip}</span></span></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="mom-v">${r.isNSR?v+'%':fmt(v)}</div>
-        ${vals==='b'?dHtml:''}
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('mom-body-a').innerHTML=buildRows('a');
-  document.getElementById('mom-body-b').innerHTML=buildRows('b');
-
-  // Render all MoM charts
-  renderMoMTrend(mA,mB,labA,labB);
-  renderMoMBarCharts(mA,mB,labA,labB);
-}
-
-function renderMoMPanels(){renderMoM()}
-
-// ─── MOM DUAL TRENDLINE ──────────────────────────
-function renderMoMTrend(mA,mB,labA,labB){
-  destChart('momTrendChart');
-  const dlA=DAILY.filter(d=>d.Date.startsWith(mA));
-  const dlB=DAILY.filter(d=>d.Date.startsWith(mB));
-
-  // Normalize to day-of-month labels (1..N)
-  const maxLen=Math.max(dlA.length,dlB.length);
-  const dayLabels=Array.from({length:maxLen},(_,i)=>`Day ${i+1}`);
-
-  // Mentions lines
-  const mentA=dlA.map(d=>d.mentions);
-  const mentB=dlB.map(d=>d.mentions);
-
-  // Interactions: scale interactions to mention axis for visual comparison
-  // Use mentions as the primary y, interactions as secondary scaled line (dashed)
-  const intA_raw=dlA.map(d=>{
-    const ov=OV[mA];
-    // Daily interactions proportional to daily mentions
-    return Math.round(d.mentions/ov.total_mentions*ov.total_interactions);
-  });
-  const intB_raw=dlB.map(d=>{
-    const ov=OV[mB];
-    return Math.round(d.mentions/ov.total_mentions*ov.total_interactions);
-  });
-
-  const ctx=document.getElementById('momTrendChart').getContext('2d');
-  const gA=ctx.createLinearGradient(0,0,0,220);gA.addColorStop(0,'rgba(21,101,192,0.18)');gA.addColorStop(1,'rgba(21,101,192,0.01)');
-  const gB=ctx.createLinearGradient(0,0,0,220);gB.addColorStop(0,'rgba(25,118,210,0.12)');gB.addColorStop(1,'rgba(25,118,210,0.01)');
-
-  charts.momTrendChart=new Chart(ctx,{
-    type:'line',
-    data:{labels:dayLabels,datasets:[
-      {label:`${labA} — Mentions`,data:mentA,borderColor:'#1565C0',backgroundColor:gA,fill:true,tension:0.4,borderWidth:2.5,pointRadius:2,pointBackgroundColor:'#1565C0',yAxisID:'yMen'},
-      {label:`${labB} — Mentions`,data:mentB,borderColor:'rgba(25,118,210,0.55)',backgroundColor:gB,fill:true,tension:0.4,borderWidth:2,borderDash:[],pointRadius:2,pointBackgroundColor:'rgba(25,118,210,0.55)',yAxisID:'yMen'},
-      {label:`${labA} — Interactions`,data:intA_raw,borderColor:'#FF8F00',backgroundColor:'transparent',fill:false,tension:0.4,borderWidth:1.5,borderDash:[6,3],pointRadius:0,yAxisID:'yInt'},
-      {label:`${labB} — Interactions`,data:intB_raw,borderColor:'rgba(255,143,0,0.5)',backgroundColor:'transparent',fill:false,tension:0.4,borderWidth:1.5,borderDash:[4,3],pointRadius:0,yAxisID:'yInt'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:14,padding:10}},
-        tooltip:{mode:'index',callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toLocaleString('vi-VN')}`}}},
-      scales:{
-        yMen:{position:'left',grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{font:{size:9},callback:v=>fmt(v)},title:{display:true,text:'Mentions',font:{size:9},color:'var(--t2)'}},
-        yInt:{position:'right',grid:{display:false},border:{display:false},ticks:{font:{size:9},callback:v=>fmt(v)},title:{display:true,text:'Interactions',font:{size:9},color:'#FF8F00'}},
-        x:{grid:{display:false},border:{display:false},ticks:{font:{size:9},maxTicksLimit:15}}
-      }}
-  });
-}
-
-// ─── MOM BAR CHARTS ──────────────────────────────
-function renderMoMBarCharts(mA,mB,labA,labB){
-  const dA=OV[mA], dB=OV[mB];
-  const months=[labA,labB];
-
-  function glassBarPair(ctx){
-    const g1=ctx.createLinearGradient(0,0,0,ctx.canvas.height);
-    g1.addColorStop(0,'rgba(21,101,192,0.95)');g1.addColorStop(1,'rgba(21,101,192,0.60)');
-    const g2=ctx.createLinearGradient(0,0,0,ctx.canvas.height);
-    g2.addColorStop(0,'rgba(25,118,210,0.70)');g2.addColorStop(1,'rgba(25,118,210,0.40)');
-    return[g1,g2];
-  }
-
-  destChart('momMentionChart');
-  const ctxM=document.getElementById('momMentionChart').getContext('2d');
-  const[g1m,g2m]=glassBarPair(ctxM);
-  charts.momMentionChart=new Chart(ctxM,{type:'bar',data:{labels:months,datasets:[{label:'Total Mentions',data:[dA.total_mentions,dB.total_mentions],backgroundColor:[g1m,g2m],borderRadius:8,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw.toLocaleString('vi-VN')} mentions`}}},
-      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{callback:v=>fmt(v)}}}}});
-
-  destChart('momInteractChart');
-  const ctxI=document.getElementById('momInteractChart').getContext('2d');
-  const[g1i,g2i]=glassBarPair(ctxI);
-  charts.momInteractChart=new Chart(ctxI,{type:'bar',data:{labels:months,datasets:[{label:'Total Interactions',data:[dA.total_interactions,dB.total_interactions],backgroundColor:[g1i,g2i],borderRadius:8,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw.toLocaleString('vi-VN')} interactions`}}},
-      scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{callback:v=>fmt(v)}}}}});
-
-  destChart('momSentimentChart');
-  const ctxS=document.getElementById('momSentimentChart').getContext('2d');
-  charts.momSentimentChart=new Chart(ctxS,{type:'bar',
-    data:{labels:months,datasets:[
-      {label:'Positive',data:[dA.positive,dB.positive],backgroundColor:glassBar(ctxS,'#2E7D32'),stack:'s',borderRadius:4},
-      {label:'Neutral',data:[dA.neutral,dB.neutral],backgroundColor:glassBar(ctxS,'#9E9E9E'),stack:'s'},
-      {label:'Negative',data:[dA.negative,dB.negative],backgroundColor:glassBar(ctxS,'#C62828'),stack:'s',borderRadius:4}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}},tooltip:{mode:'index'}},
-      scales:{x:{stacked:true,grid:{display:false},border:{display:false}},y:{stacked:true,grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{callback:v=>fmt(v)}}}}});
-
-  destChart('momTopicChart');
-  const ctxT=document.getElementById('momTopicChart').getContext('2d');
-  const top5=TOPICS.slice(0,5).map(t=>t.Labels1);
-  const[g1t,g2t]=glassBarPair(ctxT);
-  charts.momTopicChart=new Chart(ctxT,{type:'bar',
-    data:{labels:top5.map(t=>t.length>20?t.slice(0,18)+'…':t),datasets:[
-      {label:labA,data:top5.map(l=>{const r=TOPICS_BY_MONTH[mA]&&TOPICS_BY_MONTH[mA].find(t=>t.Labels1===l);return r?r.mentions:0}),backgroundColor:g1t,borderRadius:5},
-      {label:labB,data:top5.map(l=>{const r=TOPICS_BY_MONTH[mB]&&TOPICS_BY_MONTH[mB].find(t=>t.Labels1===l);return r?r.mentions:0}),backgroundColor:g2t,borderRadius:5}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,animation:{duration:900},
-      plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}},tooltip:{mode:'index',callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toLocaleString('vi-VN')}`}}},
-      scales:{x:{grid:{display:false},border:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{callback:v=>fmt(v)}}}}});
-}
-
-// ─── MODAL ───────────────────────────────────────
-function openModal(topic){
-  curModalTopic=topic;
-  document.getElementById('modal-topic-name').textContent=topic;
-  document.getElementById('modal-topic-sub').textContent='Top 3 bài viết nổi bật theo cảm xúc — bấm để xem';
-  document.getElementById('topicModal').classList.add('open');
-  showSentPosts('Positive');
-}
-function closeModal(){document.getElementById('topicModal').classList.remove('open')}
-document.getElementById('topicModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});
-
-function showSentPosts(sent){
-  curModalSent=sent;
-  document.querySelectorAll('.ms-tab').forEach(t=>t.className='ms-tab');
-  if(sent==='Positive')document.getElementById('tab-pos').className='ms-tab pos-active';
-  else if(sent==='Negative')document.getElementById('tab-neg').className='ms-tab neg-active';
-  else document.getElementById('tab-neu').className='ms-tab neu-active';
-
-  const posts=(TOPIC_POSTS[curModalTopic]&&TOPIC_POSTS[curModalTopic][sent])||[];
-  const sentCls=sent==='Positive'?'pos':sent==='Negative'?'neg':'neu';
-  const sentVI=sent==='Positive'?'Tích cực':sent==='Negative'?'Tiêu cực':'Trung tính';
-  if(!posts.length){
-    document.getElementById('modal-posts').innerHTML=`
-      <div class="state-wrap">
-        <div class="state-icon">○</div>
-        <div class="state-title">Không có dữ liệu</div>
-        <div class="state-sub">Chưa ghi nhận bài viết ${sentVI} nào cho chủ đề này trong kỳ phân tích.</div>
-      </div>`;
-    return;
-  }
-  document.getElementById('modal-posts').innerHTML=posts.map((p,i)=>`
-    <div class="post-card ${sentCls}">
-      <div class="post-meta">
-        <span class="badge ${sentCls}"><span class="bdot"></span>${sentVI}</span>
-        <span style="font-size:10px;color:var(--tm)">${p.date}</span>
-        <span style="font-size:10px;color:var(--hl-blue);font-weight:600">${p.channel}</span>
-        <span style="font-size:10px;color:var(--t2)">@${p.author}</span>
-      </div>
-      <div class="post-txt">${p.content||'(Không có nội dung)'}</div>
-      <div class="post-stats">
-        ${p.reactions?`<span class="post-stat">❤️ ${p.reactions.toLocaleString('vi-VN')} reactions</span>`:''}
-        ${p.shares?`<span class="post-stat">↗️ ${p.shares.toLocaleString('vi-VN')} chia sẻ</span>`:''}
-      </div>
-      ${p.url?`<a class="post-link" href="${p.url}" target="_blank" rel="noopener">Xem bài viết gốc →</a>`:''}
-    </div>`).join('');
-}
-
-// ─── TAB SWITCH ──────────────────────────────────
-function switchTab(tab){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
-  // Show correct filter bar
-  const isMoM = tab === 'mom';
-  document.getElementById('filter-bar-sov').style.display = isMoM ? 'none' : 'flex';
-  document.getElementById('filter-bar-mom').style.display = isMoM ? 'flex' : 'none';
-  if(isMoM) renderMoM();
-}
-
-// ─── INIT ────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>renderAll());
+const dayLabels=Array.from({length:16},(_,i)=>String(i+1));
+new Chart(document.getElementById('momTrend'),{type:'line',data:{labels:dayLabels,datasets:[{label:'May 2026',data:[2450,2109,2482,2522,3385,2405,2222,2031,2044,2347,2025,3093,3826,3104],borderColor:BL,backgroundColor:BL+'15',borderWidth:2,pointRadius:0,tension:.4,fill:false},{label:'Apr 2026',data:[3246,2078,2580,2048,1980,3330,3041,2594,2738,1756,2227,1531,1566,1619,3282,3925],borderColor:BL4,backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.4,fill:false,borderDash:[4,3]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>'Day '+t[0].label,label:c=>c.dataset.label+': '+c.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:9}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v},grid:{color:'rgba(30,107,184,.06)'}}}}});
+new Chart(document.getElementById('momSent'),{type:'bar',data:{labels:['Apr 2026','May 2026'],datasets:[{label:'Positive',data:[9191,10049],backgroundColor:CPOS,borderColor:BPOS,borderWidth:1},{label:'Neutral',data:[30252,25960],backgroundColor:CNEU,borderColor:BNEU,borderWidth:1},{label:'Negative',data:[98,36],backgroundColor:CNEG,borderColor:BNEG,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{font:{size:11}},grid:{display:false}},y:{stacked:true,ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(30,107,184,.06)'}}}}});
+new Chart(document.getElementById('momCh'),{type:'bar',data:{labels:['TikTok','Facebook','YouTube','News','Threads','Instagram'],datasets:[{label:'May 2026',data:[17698,18100,132,44,42,27],backgroundColor:BL,borderWidth:0},{label:'Apr 2026',data:[19901,19239,197,90,80,29],backgroundColor:BL4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{ticks:{font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(30,107,184,.06)'}}}}});
 </script>
-</body>
-</html>
